@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		CB091A862EBCF81C001C9F4F /* Piadina in Frameworks */ = {isa = PBXBuildFile; productRef = CB091A852EBCF81C001C9F4F /* Piadina */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		CB091A6E2EBCF548001C9F4F /* Nuvio.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Nuvio.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -36,6 +40,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CB091A862EBCF81C001C9F4F /* Piadina in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -78,6 +83,7 @@
 			);
 			name = Nuvio;
 			packageProductDependencies = (
+				CB091A852EBCF81C001C9F4F /* Piadina */,
 			);
 			productName = Nuvio;
 			productReference = CB091A6E2EBCF548001C9F4F /* Nuvio.app */;
@@ -107,6 +113,9 @@
 			);
 			mainGroup = CB091A652EBCF548001C9F4F;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				CB091A842EBCF81C001C9F4F /* XCRemoteSwiftPackageReference "Piadina" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = CB091A6F2EBCF548001C9F4F /* Products */;
 			projectDirPath = "";
@@ -155,6 +164,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -189,6 +199,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -349,6 +360,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		CB091A842EBCF81C001C9F4F /* XCRemoteSwiftPackageReference "Piadina" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/PietroMessineo/Piadina";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		CB091A852EBCF81C001C9F4F /* Piadina */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CB091A842EBCF81C001C9F4F /* XCRemoteSwiftPackageReference "Piadina" */;
+			productName = Piadina;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = CB091A662EBCF548001C9F4F /* Project object */;
 }
