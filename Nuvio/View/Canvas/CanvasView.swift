@@ -8,7 +8,7 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-private enum CanvasContentType { case empty, pdf, notes }
+private enum CanvasContentType { case empty, pdf, notes, browser }
 
 struct CanvasView: View {
     @State var currentCanvas: Int = 0
@@ -24,6 +24,12 @@ struct CanvasView: View {
     @State private var notes0: String = ""
     @State private var notes1: String = ""
     @State private var notes2: String = ""
+    @State private var browserAddress0: String = ""
+    @State private var browserAddress1: String = ""
+    @State private var browserAddress2: String = ""
+    @State private var browserNavigate0: Bool = false
+    @State private var browserNavigate1: Bool = false
+    @State private var browserNavigate2: Bool = false
     
     var body: some View {
         ZStack {
@@ -37,6 +43,8 @@ struct CanvasView: View {
                                 showingImporter = true
                             }, onOpenNotes: {
                                 contentType0 = .notes
+                            }, onOpenBrowser: {
+                                contentType0 = .browser
                             })
                         })
                         .overlay(alignment: .center) {
@@ -50,6 +58,30 @@ struct CanvasView: View {
                                     .scrollContentBackground(.hidden)
                                     .background(Color(hex: "F1F1F1"))
                                     .clipShape(RoundedRectangle(cornerRadius: 48))
+                            } else if contentType0 == .browser {
+                                ZStack(alignment: .bottom) {
+                                    WebBrowserView(urlString: $browserAddress0, navigateTrigger: $browserNavigate0)
+                                        .clipShape(RoundedRectangle(cornerRadius: 48))
+                                    
+                                    HStack {
+                                        TextField("Search or enter website name", text: $browserAddress0, onCommit: {
+                                            browserNavigate0 = true
+                                        })
+                                        .textInputAutocapitalization(.never)
+                                        .autocorrectionDisabled()
+                                        .padding(.horizontal, 16)
+                                        .padding(.vertical, 10)
+                                        .background(.thinMaterial)
+                                        .clipShape(Capsule())
+                                        
+                                        Button(action: { browserNavigate0 = true }) {
+                                            Image(systemName: "magnifyingglass")
+                                                .foregroundStyle(.primary)
+                                        }
+                                        .padding(.leading, 8)
+                                    }
+                                    .padding(16)
+                                }
                             }
                         }
                         .overlay(alignment: .bottomTrailing) {
@@ -76,6 +108,8 @@ struct CanvasView: View {
                                     showingImporter = true
                                 }, onOpenNotes: {
                                     contentType1 = .notes
+                                }, onOpenBrowser: {
+                                    contentType1 = .browser
                                 })
                             })
                             .overlay(alignment: .center) {
@@ -89,6 +123,28 @@ struct CanvasView: View {
                                         .scrollContentBackground(.hidden)
                                         .background(Color(hex: "F1F1F1"))
                                         .clipShape(RoundedRectangle(cornerRadius: 48))
+                                } else if contentType1 == .browser {
+                                    ZStack(alignment: .bottom) {
+                                        WebBrowserView(urlString: $browserAddress1, navigateTrigger: $browserNavigate1)
+                                            .clipShape(RoundedRectangle(cornerRadius: 48))
+                                        HStack {
+                                            TextField("Search or enter website name", text: $browserAddress1, onCommit: {
+                                                browserNavigate1 = true
+                                            })
+                                            .textInputAutocapitalization(.never)
+                                            .autocorrectionDisabled()
+                                            .padding(.horizontal, 16)
+                                            .padding(.vertical, 10)
+                                            .background(.thinMaterial)
+                                            .clipShape(Capsule())
+                                            Button(action: { browserNavigate1 = true }) {
+                                                Image(systemName: "magnifyingglass")
+                                                    .foregroundStyle(.primary)
+                                            }
+                                            .padding(.leading, 8)
+                                        }
+                                        .padding(16)
+                                    }
                                 }
                             }
                             .overlay(alignment: .bottomTrailing) {
@@ -115,6 +171,8 @@ struct CanvasView: View {
                                         showingImporter = true
                                     }, onOpenNotes: {
                                         contentType2 = .notes
+                                    }, onOpenBrowser: {
+                                        contentType2 = .browser
                                     })
                                 })
                                 .overlay(alignment: .center) {
@@ -128,6 +186,28 @@ struct CanvasView: View {
                                             .scrollContentBackground(.hidden)
                                             .background(Color(hex: "F1F1F1"))
                                             .clipShape(RoundedRectangle(cornerRadius: 48))
+                                    } else if contentType2 == .browser {
+                                        ZStack(alignment: .bottom) {
+                                            WebBrowserView(urlString: $browserAddress2, navigateTrigger: $browserNavigate2)
+                                                .clipShape(RoundedRectangle(cornerRadius: 48))
+                                            HStack {
+                                                TextField("Search or enter website name", text: $browserAddress2, onCommit: {
+                                                    browserNavigate2 = true
+                                                })
+                                                .textInputAutocapitalization(.never)
+                                                .autocorrectionDisabled()
+                                                .padding(.horizontal, 16)
+                                                .padding(.vertical, 10)
+                                                .background(.thinMaterial)
+                                                .clipShape(Capsule())
+                                                Button(action: { browserNavigate2 = true }) {
+                                                    Image(systemName: "magnifyingglass")
+                                                        .foregroundStyle(.primary)
+                                                }
+                                                .padding(.leading, 8)
+                                            }
+                                            .padding(16)
+                                        }
                                     }
                                 }
                                 .overlay(alignment: .bottomTrailing) {

@@ -3,9 +3,11 @@ import SwiftUI
 struct CanvasOverlayMenu: View {
     let onPickDocument: () -> Void
     let onOpenNotes: () -> Void
-    init(onPickDocument: @escaping () -> Void = {}, onOpenNotes: @escaping () -> Void = {}) {
+    let onOpenBrowser: () -> Void
+    init(onPickDocument: @escaping () -> Void = {}, onOpenNotes: @escaping () -> Void = {}, onOpenBrowser: @escaping () -> Void = {}) {
         self.onPickDocument = onPickDocument
         self.onOpenNotes = onOpenNotes
+        self.onOpenBrowser = onOpenBrowser
     }
     
     var body: some View {
@@ -35,7 +37,7 @@ struct CanvasOverlayMenu: View {
             }
             
             Button {
-                // TODO: - Open Safari View
+                onOpenBrowser()
             } label: {
                 CanvasItemView(
                     image: "globe",
@@ -90,5 +92,5 @@ struct CanvasItemView: View {
 }
 
 #Preview {
-    CanvasOverlayMenu(onPickDocument: {}, onOpenNotes: {})
+    CanvasOverlayMenu(onPickDocument: {}, onOpenNotes: {}, onOpenBrowser: {})
 }
