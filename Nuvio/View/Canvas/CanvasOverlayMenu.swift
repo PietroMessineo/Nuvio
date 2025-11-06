@@ -75,7 +75,7 @@ struct CanvasItemView: View {
                 .background(circleColor)
                 .clipShape(Circle())
             
-            Text("Document")
+            Text(title)
                 .foregroundStyle(mainColor)
                 .fontWeight(.semibold)
         }
