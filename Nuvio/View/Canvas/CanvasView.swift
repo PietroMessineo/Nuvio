@@ -6,9 +6,15 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct CanvasView: View {
     @State var currentCanvas: Int = 0
+    @State private var selectedPDF0: URL?
+    @State private var selectedPDF1: URL?
+    @State private var selectedPDF2: URL?
+    @State private var showingImporter = false
+    @State private var importingCanvasIndex: Int? = nil
     
     var body: some View {
         ZStack {
@@ -16,6 +22,18 @@ struct CanvasView: View {
                 HStack {
                     RoundedRectangle(cornerRadius: 48)
                         .fill(Color(hex: "F1F1F1"))
+                        .overlay(content: {
+                            CanvasOverlayMenu(onPickDocument: {
+                                importingCanvasIndex = 0
+                                showingImporter = true
+                            })
+                        })
+                        .overlay(alignment: .center) {
+                            if let url = selectedPDF0 {
+                                PDFKitView(url: url)
+                                    .clipShape(RoundedRectangle(cornerRadius: 48))
+                            }
+                        }
                         .overlay(alignment: .bottomTrailing) {
                             HStack {
                                 Button {
@@ -29,11 +47,23 @@ struct CanvasView: View {
                             }
                             .padding()
                         }
-                        .glassEffect(.clear.tint(Color("F1F1F1")), in: RoundedRectangle(cornerRadius: 48))
+                        .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 48))
                     
                     if currentCanvas == 1 || currentCanvas == 2 {
                         RoundedRectangle(cornerRadius: 48)
                             .fill(Color(hex: "F1F1F1"))
+                            .overlay(content: {
+                                CanvasOverlayMenu(onPickDocument: {
+                                    importingCanvasIndex = 1
+                                    showingImporter = true
+                                })
+                            })
+                            .overlay(alignment: .center) {
+                                if let url = selectedPDF1 {
+                                    PDFKitView(url: url)
+                                        .clipShape(RoundedRectangle(cornerRadius: 48))
+                                }
+                            }
                             .overlay(alignment: .bottomTrailing) {
                                 HStack {
                                     Button {
@@ -47,11 +77,23 @@ struct CanvasView: View {
                                 }
                                 .padding()
                             }
-                            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 48))
+                            .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 48))
                         
                         if currentCanvas == 2 {
                             RoundedRectangle(cornerRadius: 48)
                                 .fill(Color(hex: "F1F1F1"))
+                                .overlay(content: {
+                                    CanvasOverlayMenu(onPickDocument: {
+                                        importingCanvasIndex = 2
+                                        showingImporter = true
+                                    })
+                                })
+                                .overlay(alignment: .center) {
+                                    if let url = selectedPDF2 {
+                                        PDFKitView(url: url)
+                                            .clipShape(RoundedRectangle(cornerRadius: 48))
+                                    }
+                                }
                                 .overlay(alignment: .bottomTrailing) {
                                     HStack {
                                         Button {
@@ -65,12 +107,33 @@ struct CanvasView: View {
                                     }
                                     .padding()
                                 }
-                                .glassEffect(.clear.tint(Color("F1F1F1")), in: RoundedRectangle(cornerRadius: 48))
+                                .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 48))
                         }
                     }
                 }
             }
             .padding()
+            .fileImporter(isPresented: $showingImporter, allowedContentTypes: [.pdf], allowsMultipleSelection: false) { result in
+                switch result {
+                case .success(let urls):
+                    guard let url = urls.first else { return }
+                    let started = url.startAccessingSecurityScopedResource()
+                    defer {
+                        if started {
+                            // Do not stop immediately to allow rendering; you can manage stopping when clearing/replacing
+                            // url.stopAccessingSecurityScopedResource()
+                        }
+                    }
+                    switch importingCanvasIndex {
+                    case 0: selectedPDF0 = url
+                    case 1: selectedPDF1 = url
+                    case 2: selectedPDF2 = url
+                    default: break
+                    }
+                case .failure:
+                    break
+                }
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .toolbar {

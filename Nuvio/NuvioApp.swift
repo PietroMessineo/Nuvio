@@ -14,8 +14,10 @@ struct NuvioApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .environment(\.managedObjectContext, persistenceController.container.viewContext)
+            NavigationStack {
+                CanvasView()
+            }
+            .environment(\.managedObjectContext, persistenceController.container.viewContext)
         }
     }
 }
