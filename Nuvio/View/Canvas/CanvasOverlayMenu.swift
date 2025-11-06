@@ -2,8 +2,10 @@ import SwiftUI
 
 struct CanvasOverlayMenu: View {
     let onPickDocument: () -> Void
-    init(onPickDocument: @escaping () -> Void = {}) {
+    let onOpenNotes: () -> Void
+    init(onPickDocument: @escaping () -> Void = {}, onOpenNotes: @escaping () -> Void = {}) {
         self.onPickDocument = onPickDocument
+        self.onOpenNotes = onOpenNotes
     }
     
     var body: some View {
@@ -21,7 +23,7 @@ struct CanvasOverlayMenu: View {
             }
 
             Button {
-                // TODO: - Open Text Canvas
+                onOpenNotes()
             } label: {
                 CanvasItemView(
                     image: "pencil.and.scribble",
@@ -88,5 +90,5 @@ struct CanvasItemView: View {
 }
 
 #Preview {
-    CanvasOverlayMenu(onPickDocument: {})
+    CanvasOverlayMenu(onPickDocument: {}, onOpenNotes: {})
 }

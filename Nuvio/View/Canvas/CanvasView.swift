@@ -8,6 +8,8 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
+private enum CanvasContentType { case empty, pdf, notes }
+
 struct CanvasView: View {
     @State var currentCanvas: Int = 0
     @State private var selectedPDF0: URL?
@@ -15,6 +17,13 @@ struct CanvasView: View {
     @State private var selectedPDF2: URL?
     @State private var showingImporter = false
     @State private var importingCanvasIndex: Int? = nil
+    
+    @State private var contentType0: CanvasContentType = .empty
+    @State private var contentType1: CanvasContentType = .empty
+    @State private var contentType2: CanvasContentType = .empty
+    @State private var notes0: String = ""
+    @State private var notes1: String = ""
+    @State private var notes2: String = ""
     
     var body: some View {
         ZStack {
@@ -26,11 +35,20 @@ struct CanvasView: View {
                             CanvasOverlayMenu(onPickDocument: {
                                 importingCanvasIndex = 0
                                 showingImporter = true
+                            }, onOpenNotes: {
+                                contentType0 = .notes
                             })
                         })
                         .overlay(alignment: .center) {
-                            if let url = selectedPDF0 {
+                            if contentType0 == .pdf, let url = selectedPDF0 {
                                 PDFKitView(url: url)
+                                    .clipShape(RoundedRectangle(cornerRadius: 48))
+                            } else if contentType0 == .notes {
+                                TextEditor(text: $notes0)
+                                    .font(.system(size: 20))
+                                    .padding(24)
+                                    .scrollContentBackground(.hidden)
+                                    .background(Color(hex: "F1F1F1"))
                                     .clipShape(RoundedRectangle(cornerRadius: 48))
                             }
                         }
@@ -56,11 +74,20 @@ struct CanvasView: View {
                                 CanvasOverlayMenu(onPickDocument: {
                                     importingCanvasIndex = 1
                                     showingImporter = true
+                                }, onOpenNotes: {
+                                    contentType1 = .notes
                                 })
                             })
                             .overlay(alignment: .center) {
-                                if let url = selectedPDF1 {
+                                if contentType1 == .pdf, let url = selectedPDF1 {
                                     PDFKitView(url: url)
+                                        .clipShape(RoundedRectangle(cornerRadius: 48))
+                                } else if contentType1 == .notes {
+                                    TextEditor(text: $notes1)
+                                        .font(.system(size: 20))
+                                        .padding(24)
+                                        .scrollContentBackground(.hidden)
+                                        .background(Color(hex: "F1F1F1"))
                                         .clipShape(RoundedRectangle(cornerRadius: 48))
                                 }
                             }
@@ -86,11 +113,20 @@ struct CanvasView: View {
                                     CanvasOverlayMenu(onPickDocument: {
                                         importingCanvasIndex = 2
                                         showingImporter = true
+                                    }, onOpenNotes: {
+                                        contentType2 = .notes
                                     })
                                 })
                                 .overlay(alignment: .center) {
-                                    if let url = selectedPDF2 {
+                                    if contentType2 == .pdf, let url = selectedPDF2 {
                                         PDFKitView(url: url)
+                                            .clipShape(RoundedRectangle(cornerRadius: 48))
+                                    } else if contentType2 == .notes {
+                                        TextEditor(text: $notes2)
+                                            .font(.system(size: 20))
+                                            .padding(24)
+                                            .scrollContentBackground(.hidden)
+                                            .background(Color(hex: "F1F1F1"))
                                             .clipShape(RoundedRectangle(cornerRadius: 48))
                                     }
                                 }
@@ -125,10 +161,17 @@ struct CanvasView: View {
                         }
                     }
                     switch importingCanvasIndex {
-                    case 0: selectedPDF0 = url
-                    case 1: selectedPDF1 = url
-                    case 2: selectedPDF2 = url
-                    default: break
+                    case 0:
+                        selectedPDF0 = url
+                        contentType0 = .pdf
+                    case 1:
+                        selectedPDF1 = url
+                        contentType1 = .pdf
+                    case 2:
+                        selectedPDF2 = url
+                        contentType2 = .pdf
+                    default:
+                        break
                     }
                 case .failure:
                     break
@@ -178,3 +221,4 @@ struct CanvasView: View {
         CanvasView()
     }
 }
+
