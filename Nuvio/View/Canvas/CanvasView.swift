@@ -81,59 +81,7 @@ struct CanvasBrowserView: View {
     @Binding var goForwardTrigger: Bool
     
     var body: some View {
-        ZStack(alignment: .bottom) {
-            WebBrowserView(
-                urlString: $browserAddress,
-                navigateTrigger: $browserNavigate,
-                canGoBack: $canGoBack,
-                canGoForward: $canGoForward,
-                goBackTrigger: $goBackTrigger,
-                goForwardTrigger: $goForwardTrigger
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 48))
-
-            HStack {
-                if canGoBack || canGoForward {
-                    GlassEffectContainer {
-                        HStack {
-                            if canGoBack {
-                                Button {
-                                    goBackTrigger.toggle()
-                                } label: {
-                                    Image(systemName: "chevron.left")
-                                        .foregroundStyle(Color.primary)
-                                }
-                                .padding()
-                                .glassEffect(.regular.interactive(), in: .circle)
-                            }
-
-                            if canGoForward {
-                                Button {
-                                    goForwardTrigger.toggle()
-                                } label: {
-                                    Image(systemName: "chevron.right")
-                                        .foregroundStyle(Color.primary)
-                                }
-                                .padding()
-                                .glassEffect(.regular.interactive(), in: .circle)
-                            }
-                        }
-                        .glassEffect(.regular.interactive(), in: .capsule)
-                    }
-                }
-                
-                TextField("Search or enter website name", text: $browserAddress, onCommit: {
-                    browserNavigate = true
-                })
-                .keyboardType(.webSearch)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .glassEffect(.regular, in: .capsule)
-            }
-            .padding(16)
-        }
+        ModernWebBrowserView(urlText: $browserAddress)
     }
 }
 
