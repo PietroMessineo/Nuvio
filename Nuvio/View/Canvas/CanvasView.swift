@@ -16,6 +16,10 @@ struct CanvasPane: View {
     @Binding var notes: String
     @Binding var browserAddress: String
     @Binding var browserNavigate: Bool
+    @Binding var canGoBack: Bool
+    @Binding var canGoForward: Bool
+    @Binding var goBackTrigger: Bool
+    @Binding var goForwardTrigger: Bool
 
     var onPickDocument: () -> Void
     var onOpenNotes: () -> Void
@@ -38,7 +42,14 @@ struct CanvasPane: View {
             case .notes:
                 CanvasNotesView(notes: $notes)
             case .browser:
-                CanvasBrowserView(browserAddress: $browserAddress, browserNavigate: $browserNavigate)
+                CanvasBrowserView(
+                    browserAddress: $browserAddress,
+                    browserNavigate: $browserNavigate,
+                    canGoBack: $canGoBack,
+                    canGoForward: $canGoForward,
+                    goBackTrigger: $goBackTrigger,
+                    goForwardTrigger: $goForwardTrigger
+                )
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -64,13 +75,53 @@ struct CanvasPane: View {
 struct CanvasBrowserView: View {
     @Binding var browserAddress: String
     @Binding var browserNavigate: Bool
+    @Binding var canGoBack: Bool
+    @Binding var canGoForward: Bool
+    @Binding var goBackTrigger: Bool
+    @Binding var goForwardTrigger: Bool
     
     var body: some View {
         ZStack(alignment: .bottom) {
-            WebBrowserView(urlString: $browserAddress, navigateTrigger: $browserNavigate)
-                .clipShape(RoundedRectangle(cornerRadius: 48))
+            WebBrowserView(
+                urlString: $browserAddress,
+                navigateTrigger: $browserNavigate,
+                canGoBack: $canGoBack,
+                canGoForward: $canGoForward,
+                goBackTrigger: $goBackTrigger,
+                goForwardTrigger: $goForwardTrigger
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 48))
 
             HStack {
+                if canGoBack || canGoForward {
+                    GlassEffectContainer {
+                        HStack {
+                            if canGoBack {
+                                Button {
+                                    goBackTrigger.toggle()
+                                } label: {
+                                    Image(systemName: "chevron.left")
+                                        .foregroundStyle(Color.primary)
+                                }
+                                .padding()
+                                .glassEffect(.regular.interactive(), in: .circle)
+                            }
+
+                            if canGoForward {
+                                Button {
+                                    goForwardTrigger.toggle()
+                                } label: {
+                                    Image(systemName: "chevron.right")
+                                        .foregroundStyle(Color.primary)
+                                }
+                                .padding()
+                                .glassEffect(.regular.interactive(), in: .circle)
+                            }
+                        }
+                        .glassEffect(.regular.interactive(), in: .capsule)
+                    }
+                }
+                
                 TextField("Search or enter website name", text: $browserAddress, onCommit: {
                     browserNavigate = true
                 })
@@ -119,6 +170,19 @@ struct CanvasView: View {
     @State private var browserNavigate0: Bool = false
     @State private var browserNavigate1: Bool = false
     @State private var browserNavigate2: Bool = false
+    @State private var canGoBack0: Bool = false
+    @State private var canGoForward0: Bool = false
+    @State private var canGoBack1: Bool = false
+    @State private var canGoForward1: Bool = false
+    @State private var canGoBack2: Bool = false
+    @State private var canGoForward2: Bool = false
+    
+    @State private var goBackTrigger0: Bool = false
+    @State private var goForwardTrigger0: Bool = false
+    @State private var goBackTrigger1: Bool = false
+    @State private var goForwardTrigger1: Bool = false
+    @State private var goBackTrigger2: Bool = false
+    @State private var goForwardTrigger2: Bool = false
     
     var body: some View {
         ZStack {
@@ -130,6 +194,10 @@ struct CanvasView: View {
                         notes: $notes0,
                         browserAddress: $browserAddress0,
                         browserNavigate: $browserNavigate0,
+                        canGoBack: $canGoBack0,
+                        canGoForward: $canGoForward0,
+                        goBackTrigger: $goBackTrigger0,
+                        goForwardTrigger: $goForwardTrigger0,
                         onPickDocument: {
                             importingCanvasIndex = 0
                             showingImporter = true
@@ -145,6 +213,10 @@ struct CanvasView: View {
                             notes: $notes1,
                             browserAddress: $browserAddress1,
                             browserNavigate: $browserNavigate1,
+                            canGoBack: $canGoBack1,
+                            canGoForward: $canGoForward1,
+                            goBackTrigger: $goBackTrigger1,
+                            goForwardTrigger: $goForwardTrigger1,
                             onPickDocument: {
                                 importingCanvasIndex = 1
                                 showingImporter = true
@@ -160,6 +232,10 @@ struct CanvasView: View {
                                 notes: $notes2,
                                 browserAddress: $browserAddress2,
                                 browserNavigate: $browserNavigate2,
+                                canGoBack: $canGoBack2,
+                                canGoForward: $canGoForward2,
+                                goBackTrigger: $goBackTrigger2,
+                                goForwardTrigger: $goForwardTrigger2,
                                 onPickDocument: {
                                     importingCanvasIndex = 2
                                     showingImporter = true
@@ -244,4 +320,3 @@ struct CanvasView: View {
         CanvasView()
     }
 }
-
