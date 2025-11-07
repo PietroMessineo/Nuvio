@@ -8,7 +8,96 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-private enum CanvasContentType { case empty, pdf, notes, browser }
+enum CanvasContentType { case empty, pdf, notes, browser }
+
+struct CanvasPane: View {
+    @Binding var contentType: CanvasContentType
+    @Binding var selectedPDF: URL?
+    @Binding var notes: String
+    @Binding var browserAddress: String
+    @Binding var browserNavigate: Bool
+
+    var onPickDocument: () -> Void
+    var onOpenNotes: () -> Void
+    var onOpenBrowser: () -> Void
+
+    var body: some View {
+        ZStack {
+            switch contentType {
+            case .empty:
+                CanvasOverlayMenu(
+                    onPickDocument: onPickDocument,
+                    onOpenNotes: onOpenNotes,
+                    onOpenBrowser: onOpenBrowser
+                )
+            case .pdf:
+                if let url = selectedPDF {
+                    PDFKitView(url: url)
+                        .clipShape(RoundedRectangle(cornerRadius: 48))
+                }
+            case .notes:
+                CanvasNotesView(notes: $notes)
+            case .browser:
+                CanvasBrowserView(browserAddress: $browserAddress, browserNavigate: $browserNavigate)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(hex: "F1F1F1"))
+        .clipShape(RoundedRectangle(cornerRadius: 48))
+        .overlay(alignment: .topTrailing) {
+            HStack {
+                Button {
+                    // TODO: - Switch item
+                } label: {
+                    Image(systemName: "checkmark.rectangle.stack")
+                        .foregroundStyle(Color.primary)
+                }
+                .padding()
+                .glassEffect(.regular.interactive(), in: Circle())
+            }
+            .padding()
+        }
+        .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 48))
+    }
+}
+
+struct CanvasBrowserView: View {
+    @Binding var browserAddress: String
+    @Binding var browserNavigate: Bool
+    
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            WebBrowserView(urlString: $browserAddress, navigateTrigger: $browserNavigate)
+                .clipShape(RoundedRectangle(cornerRadius: 48))
+
+            HStack {
+                TextField("Search or enter website name", text: $browserAddress, onCommit: {
+                    browserNavigate = true
+                })
+                .keyboardType(.webSearch)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .glassEffect(.regular, in: .capsule)
+            }
+            .padding(16)
+        }
+    }
+}
+
+struct CanvasNotesView: View {
+    @Binding var notes: String
+    
+    var body: some View {
+        TextEditor(text: $notes)
+            .font(.system(size: 20))
+            .padding(24)
+            .scrollContentBackground(.hidden)
+            .background(Color(hex: "F1F1F1"))
+            .clipShape(RoundedRectangle(cornerRadius: 48))
+    }
+}
 
 struct CanvasView: View {
     @State var currentCanvas: Int = 0
@@ -35,195 +124,49 @@ struct CanvasView: View {
         ZStack {
             GlassEffectContainer {
                 HStack {
-                    RoundedRectangle(cornerRadius: 48)
-                        .fill(Color(hex: "F1F1F1"))
-                        .overlay(content: {
-                            CanvasOverlayMenu(onPickDocument: {
-                                importingCanvasIndex = 0
-                                showingImporter = true
-                            }, onOpenNotes: {
-                                contentType0 = .notes
-                            }, onOpenBrowser: {
-                                contentType0 = .browser
-                            })
-                        })
-                        .overlay(alignment: .center) {
-                            if contentType0 == .pdf, let url = selectedPDF0 {
-                                PDFKitView(url: url)
-                                    .clipShape(RoundedRectangle(cornerRadius: 48))
-                            } else if contentType0 == .notes {
-                                TextEditor(text: $notes0)
-                                    .font(.system(size: 20))
-                                    .padding(24)
-                                    .scrollContentBackground(.hidden)
-                                    .background(Color(hex: "F1F1F1"))
-                                    .clipShape(RoundedRectangle(cornerRadius: 48))
-                            } else if contentType0 == .browser {
-                                ZStack(alignment: .bottom) {
-                                    WebBrowserView(urlString: $browserAddress0, navigateTrigger: $browserNavigate0)
-                                        .clipShape(RoundedRectangle(cornerRadius: 48))
-                                    
-                                    HStack {
-                                        TextField("Search or enter website name", text: $browserAddress0, onCommit: {
-                                            browserNavigate0 = true
-                                        })
-                                        .textInputAutocapitalization(.never)
-                                        .autocorrectionDisabled()
-                                        .padding(.horizontal, 16)
-                                        .padding(.vertical, 10)
-                                        .background(.thinMaterial)
-                                        .clipShape(Capsule())
-                                        
-                                        Button(action: { browserNavigate0 = true }) {
-                                            Image(systemName: "magnifyingglass")
-                                                .foregroundStyle(.primary)
-                                        }
-                                        .padding(.leading, 8)
-                                    }
-                                    .padding(16)
-                                }
-                            }
-                        }
-                        .overlay(alignment: .bottomTrailing) {
-                            HStack {
-                                Button {
-                                    // TODO: - Switch item
-                                } label: {
-                                    Image(systemName: "checkmark.rectangle.stack")
-                                        .foregroundStyle(Color.primary)
-                                }
-                                .padding()
-                                .glassEffect(.regular.interactive(), in: Circle())
-                            }
-                            .padding()
-                        }
-                        .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 48))
+                    CanvasPane(
+                        contentType: $contentType0,
+                        selectedPDF: $selectedPDF0,
+                        notes: $notes0,
+                        browserAddress: $browserAddress0,
+                        browserNavigate: $browserNavigate0,
+                        onPickDocument: {
+                            importingCanvasIndex = 0
+                            showingImporter = true
+                        },
+                        onOpenNotes: { contentType0 = .notes },
+                        onOpenBrowser: { contentType0 = .browser }
+                    )
                     
                     if currentCanvas == 1 || currentCanvas == 2 {
-                        RoundedRectangle(cornerRadius: 48)
-                            .fill(Color(hex: "F1F1F1"))
-                            .overlay(content: {
-                                CanvasOverlayMenu(onPickDocument: {
-                                    importingCanvasIndex = 1
-                                    showingImporter = true
-                                }, onOpenNotes: {
-                                    contentType1 = .notes
-                                }, onOpenBrowser: {
-                                    contentType1 = .browser
-                                })
-                            })
-                            .overlay(alignment: .center) {
-                                if contentType1 == .pdf, let url = selectedPDF1 {
-                                    PDFKitView(url: url)
-                                        .clipShape(RoundedRectangle(cornerRadius: 48))
-                                } else if contentType1 == .notes {
-                                    TextEditor(text: $notes1)
-                                        .font(.system(size: 20))
-                                        .padding(24)
-                                        .scrollContentBackground(.hidden)
-                                        .background(Color(hex: "F1F1F1"))
-                                        .clipShape(RoundedRectangle(cornerRadius: 48))
-                                } else if contentType1 == .browser {
-                                    ZStack(alignment: .bottom) {
-                                        WebBrowserView(urlString: $browserAddress1, navigateTrigger: $browserNavigate1)
-                                            .clipShape(RoundedRectangle(cornerRadius: 48))
-                                        HStack {
-                                            TextField("Search or enter website name", text: $browserAddress1, onCommit: {
-                                                browserNavigate1 = true
-                                            })
-                                            .textInputAutocapitalization(.never)
-                                            .autocorrectionDisabled()
-                                            .padding(.horizontal, 16)
-                                            .padding(.vertical, 10)
-                                            .background(.thinMaterial)
-                                            .clipShape(Capsule())
-                                            Button(action: { browserNavigate1 = true }) {
-                                                Image(systemName: "magnifyingglass")
-                                                    .foregroundStyle(.primary)
-                                            }
-                                            .padding(.leading, 8)
-                                        }
-                                        .padding(16)
-                                    }
-                                }
-                            }
-                            .overlay(alignment: .bottomTrailing) {
-                                HStack {
-                                    Button {
-                                        // TODO: - Switch item
-                                    } label: {
-                                        Image(systemName: "checkmark.rectangle.stack")
-                                            .foregroundStyle(Color.primary)
-                                    }
-                                    .padding()
-                                    .glassEffect(.regular.interactive(), in: Circle())
-                                }
-                                .padding()
-                            }
-                            .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 48))
+                        CanvasPane(
+                            contentType: $contentType1,
+                            selectedPDF: $selectedPDF1,
+                            notes: $notes1,
+                            browserAddress: $browserAddress1,
+                            browserNavigate: $browserNavigate1,
+                            onPickDocument: {
+                                importingCanvasIndex = 1
+                                showingImporter = true
+                            },
+                            onOpenNotes: { contentType1 = .notes },
+                            onOpenBrowser: { contentType1 = .browser }
+                        )
                         
                         if currentCanvas == 2 {
-                            RoundedRectangle(cornerRadius: 48)
-                                .fill(Color(hex: "F1F1F1"))
-                                .overlay(content: {
-                                    CanvasOverlayMenu(onPickDocument: {
-                                        importingCanvasIndex = 2
-                                        showingImporter = true
-                                    }, onOpenNotes: {
-                                        contentType2 = .notes
-                                    }, onOpenBrowser: {
-                                        contentType2 = .browser
-                                    })
-                                })
-                                .overlay(alignment: .center) {
-                                    if contentType2 == .pdf, let url = selectedPDF2 {
-                                        PDFKitView(url: url)
-                                            .clipShape(RoundedRectangle(cornerRadius: 48))
-                                    } else if contentType2 == .notes {
-                                        TextEditor(text: $notes2)
-                                            .font(.system(size: 20))
-                                            .padding(24)
-                                            .scrollContentBackground(.hidden)
-                                            .background(Color(hex: "F1F1F1"))
-                                            .clipShape(RoundedRectangle(cornerRadius: 48))
-                                    } else if contentType2 == .browser {
-                                        ZStack(alignment: .bottom) {
-                                            WebBrowserView(urlString: $browserAddress2, navigateTrigger: $browserNavigate2)
-                                                .clipShape(RoundedRectangle(cornerRadius: 48))
-                                            HStack {
-                                                TextField("Search or enter website name", text: $browserAddress2, onCommit: {
-                                                    browserNavigate2 = true
-                                                })
-                                                .textInputAutocapitalization(.never)
-                                                .autocorrectionDisabled()
-                                                .padding(.horizontal, 16)
-                                                .padding(.vertical, 10)
-                                                .background(.thinMaterial)
-                                                .clipShape(Capsule())
-                                                Button(action: { browserNavigate2 = true }) {
-                                                    Image(systemName: "magnifyingglass")
-                                                        .foregroundStyle(.primary)
-                                                }
-                                                .padding(.leading, 8)
-                                            }
-                                            .padding(16)
-                                        }
-                                    }
-                                }
-                                .overlay(alignment: .bottomTrailing) {
-                                    HStack {
-                                        Button {
-                                            // TODO: - Switch item
-                                        } label: {
-                                            Image(systemName: "checkmark.rectangle.stack")
-                                                .foregroundStyle(Color.primary)
-                                        }
-                                        .padding()
-                                        .glassEffect(.regular.interactive(), in: Circle())
-                                    }
-                                    .padding()
-                                }
-                                .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 48))
+                            CanvasPane(
+                                contentType: $contentType2,
+                                selectedPDF: $selectedPDF2,
+                                notes: $notes2,
+                                browserAddress: $browserAddress2,
+                                browserNavigate: $browserNavigate2,
+                                onPickDocument: {
+                                    importingCanvasIndex = 2
+                                    showingImporter = true
+                                },
+                                onOpenNotes: { contentType2 = .notes },
+                                onOpenBrowser: { contentType2 = .browser }
+                            )
                         }
                     }
                 }
