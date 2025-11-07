@@ -11,6 +11,7 @@ import UniformTypeIdentifiers
 enum CanvasContentType { case empty, pdf, notes, browser }
 
 struct CanvasPane: View {
+    let canvasIndex: Int
     @Binding var contentType: CanvasContentType
     @Binding var selectedPDF: URL?
     @Binding var notes: String
@@ -24,6 +25,7 @@ struct CanvasPane: View {
     var onPickDocument: () -> Void
     var onOpenNotes: () -> Void
     var onOpenBrowser: () -> Void
+    var onSwitchCanvas: (Int) -> Void
 
     var body: some View {
         ZStack {
@@ -58,7 +60,7 @@ struct CanvasPane: View {
         .overlay(alignment: .topTrailing) {
             HStack {
                 Button {
-                    // TODO: - Switch item
+                    onSwitchCanvas(canvasIndex)
                 } label: {
                     Image(systemName: "checkmark.rectangle.stack")
                         .foregroundStyle(Color.primary)
@@ -98,6 +100,181 @@ struct CanvasNotesView: View {
     }
 }
 
+struct CanvasSwitcherView: View {
+    let sourceCanvasIndex: Int
+    
+    // Canvas data for preview
+    let contentTypes: [CanvasContentType]
+    let notes: [String]
+    let selectedPDFs: [URL?]
+    let browserAddresses: [String]
+    
+    let onSwitch: (Int) -> Void
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 20) {
+                Text("Switch Canvas \(sourceCanvasIndex + 1)")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                    .padding(.top)
+                
+                Text("Tap a canvas to switch positions")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                
+                LazyVGrid(columns: [
+                    GridItem(.flexible()),
+                    GridItem(.flexible()),
+                    GridItem(.flexible())
+                ], spacing: 16) {
+                    ForEach(0..<3, id: \.self) { index in
+                        CanvasPreviewCard(
+                            canvasIndex: index,
+                            contentType: contentTypes[index],
+                            notes: notes[index],
+                            selectedPDF: selectedPDFs[index],
+                            browserAddress: browserAddresses[index],
+                            isSource: index == sourceCanvasIndex,
+                            onTap: {
+                                if index != sourceCanvasIndex {
+                                    onSwitch(index)
+                                    dismiss()
+                                }
+                            }
+                        )
+                    }
+                }
+                .padding()
+                
+                Spacer()
+            }
+            .navigationTitle("Canvas Switcher")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
+struct CanvasPreviewCard: View {
+    let canvasIndex: Int
+    let contentType: CanvasContentType
+    let notes: String
+    let selectedPDF: URL?
+    let browserAddress: String
+    let isSource: Bool
+    let onTap: () -> Void
+    
+    var body: some View {
+        Button(action: onTap) {
+            VStack(spacing: 8) {
+                // Canvas preview
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color(hex: "#F1F1F1"))
+                        .frame(height: 120)
+                    
+                    // Preview content based on canvas type
+                    Group {
+                        switch contentType {
+                        case .empty:
+                            VStack {
+                                Image(systemName: "plus")
+                                    .font(.title2)
+                                    .foregroundStyle(.secondary)
+                                Text("Empty")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        case .pdf:
+                            VStack {
+                                Image(systemName: "document")
+                                    .font(.title2)
+                                    .foregroundStyle(Color(hex: "80C5FB"))
+                                Text("Document")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        case .notes:
+                            VStack {
+                                Image(systemName: "pencil.and.scribble")
+                                    .font(.title2)
+                                    .foregroundStyle(Color(hex: "FBD680"))
+                                Text("Notes")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                if !notes.isEmpty {
+                                    Text(notes.prefix(20) + (notes.count > 20 ? "..." : ""))
+                                        .font(.caption2)
+                                        .foregroundStyle(.tertiary)
+                                        .multilineTextAlignment(.center)
+                                }
+                            }
+                        case .browser:
+                            VStack {
+                                Image(systemName: "globe")
+                                    .font(.title2)
+                                    .foregroundStyle(Color(hex: "A8D2D1"))
+                                Text("Browser")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                if !browserAddress.isEmpty {
+                                    Text(browserAddress)
+                                        .font(.caption2)
+                                        .foregroundStyle(.tertiary)
+                                        .lineLimit(2)
+                                        .multilineTextAlignment(.center)
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Source indicator
+                    if isSource {
+                        VStack {
+                            HStack {
+                                Spacer()
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(.white, .blue)
+                                    .font(.title2)
+                            }
+                            Spacer()
+                        }
+                        .padding(8)
+                    }
+                }
+                
+                // Canvas label
+                Text("Canvas \(canvasIndex + 1)")
+                    .font(.headline)
+                    .foregroundStyle(isSource ? .blue : .primary)
+            }
+        }
+        .buttonStyle(PlainButtonStyle())
+        .scaleEffect(isSource ? 1.05 : 1.0)
+        .animation(.easeInOut(duration: 0.2), value: isSource)
+    }
+}
+
+struct CanvasData {
+    var contentType: CanvasContentType = .empty
+    var selectedPDF: URL? = nil
+    var notes: String = ""
+    var browserAddress: String = ""
+    var browserNavigate: Bool = false
+    var canGoBack: Bool = false
+    var canGoForward: Bool = false
+    var goBackTrigger: Bool = false
+    var goForwardTrigger: Bool = false
+}
+
 struct CanvasView: View {
     @State var currentCanvas: Int = 0
     @State private var selectedPDF0: URL?
@@ -105,6 +282,10 @@ struct CanvasView: View {
     @State private var selectedPDF2: URL?
     @State private var showingImporter = false
     @State private var importingCanvasIndex: Int? = nil
+    
+    // Canvas switcher state
+    @State private var showingCanvasSwitcher = false
+    @State private var switchingFromCanvasIndex: Int? = nil
     
     @State private var contentType0: CanvasContentType = .empty
     @State private var contentType1: CanvasContentType = .empty
@@ -132,11 +313,103 @@ struct CanvasView: View {
     @State private var goBackTrigger2: Bool = false
     @State private var goForwardTrigger2: Bool = false
     
+    // Helper methods for canvas switching
+    private func switchCanvases(from sourceIndex: Int, to targetIndex: Int) {
+        // Store source canvas data
+        let sourceData = getCanvasData(at: sourceIndex)
+        let targetData = getCanvasData(at: targetIndex)
+        
+        // Switch the data
+        setCanvasData(at: sourceIndex, data: targetData)
+        setCanvasData(at: targetIndex, data: sourceData)
+    }
+    
+    private func getCanvasData(at index: Int) -> CanvasData {
+        switch index {
+        case 0:
+            return CanvasData(
+                contentType: contentType0,
+                selectedPDF: selectedPDF0,
+                notes: notes0,
+                browserAddress: browserAddress0,
+                browserNavigate: browserNavigate0,
+                canGoBack: canGoBack0,
+                canGoForward: canGoForward0,
+                goBackTrigger: goBackTrigger0,
+                goForwardTrigger: goForwardTrigger0
+            )
+        case 1:
+            return CanvasData(
+                contentType: contentType1,
+                selectedPDF: selectedPDF1,
+                notes: notes1,
+                browserAddress: browserAddress1,
+                browserNavigate: browserNavigate1,
+                canGoBack: canGoBack1,
+                canGoForward: canGoForward1,
+                goBackTrigger: goBackTrigger1,
+                goForwardTrigger: goForwardTrigger1
+            )
+        case 2:
+            return CanvasData(
+                contentType: contentType2,
+                selectedPDF: selectedPDF2,
+                notes: notes2,
+                browserAddress: browserAddress2,
+                browserNavigate: browserNavigate2,
+                canGoBack: canGoBack2,
+                canGoForward: canGoForward2,
+                goBackTrigger: goBackTrigger2,
+                goForwardTrigger: goForwardTrigger2
+            )
+        default:
+            return CanvasData()
+        }
+    }
+    
+    private func setCanvasData(at index: Int, data: CanvasData) {
+        switch index {
+        case 0:
+            contentType0 = data.contentType
+            selectedPDF0 = data.selectedPDF
+            notes0 = data.notes
+            browserAddress0 = data.browserAddress
+            browserNavigate0 = data.browserNavigate
+            canGoBack0 = data.canGoBack
+            canGoForward0 = data.canGoForward
+            goBackTrigger0 = data.goBackTrigger
+            goForwardTrigger0 = data.goForwardTrigger
+        case 1:
+            contentType1 = data.contentType
+            selectedPDF1 = data.selectedPDF
+            notes1 = data.notes
+            browserAddress1 = data.browserAddress
+            browserNavigate1 = data.browserNavigate
+            canGoBack1 = data.canGoBack
+            canGoForward1 = data.canGoForward
+            goBackTrigger1 = data.goBackTrigger
+            goForwardTrigger1 = data.goForwardTrigger
+        case 2:
+            contentType2 = data.contentType
+            selectedPDF2 = data.selectedPDF
+            notes2 = data.notes
+            browserAddress2 = data.browserAddress
+            browserNavigate2 = data.browserNavigate
+            canGoBack2 = data.canGoBack
+            canGoForward2 = data.canGoForward
+            goBackTrigger2 = data.goBackTrigger
+            goForwardTrigger2 = data.goForwardTrigger
+        default:
+            break
+        }
+    }
+    
     var body: some View {
         ZStack {
             GlassEffectContainer {
                 HStack {
                     CanvasPane(
+                        canvasIndex: 0,
                         contentType: $contentType0,
                         selectedPDF: $selectedPDF0,
                         notes: $notes0,
@@ -151,11 +424,16 @@ struct CanvasView: View {
                             showingImporter = true
                         },
                         onOpenNotes: { contentType0 = .notes },
-                        onOpenBrowser: { contentType0 = .browser }
+                        onOpenBrowser: { contentType0 = .browser },
+                        onSwitchCanvas: { canvasIndex in
+                            switchingFromCanvasIndex = canvasIndex
+                            showingCanvasSwitcher = true
+                        }
                     )
                     
                     if currentCanvas == 1 || currentCanvas == 2 {
                         CanvasPane(
+                            canvasIndex: 1,
                             contentType: $contentType1,
                             selectedPDF: $selectedPDF1,
                             notes: $notes1,
@@ -170,11 +448,16 @@ struct CanvasView: View {
                                 showingImporter = true
                             },
                             onOpenNotes: { contentType1 = .notes },
-                            onOpenBrowser: { contentType1 = .browser }
+                            onOpenBrowser: { contentType1 = .browser },
+                            onSwitchCanvas: { canvasIndex in
+                                switchingFromCanvasIndex = canvasIndex
+                                showingCanvasSwitcher = true
+                            }
                         )
                         
                         if currentCanvas == 2 {
                             CanvasPane(
+                                canvasIndex: 2,
                                 contentType: $contentType2,
                                 selectedPDF: $selectedPDF2,
                                 notes: $notes2,
@@ -189,7 +472,11 @@ struct CanvasView: View {
                                     showingImporter = true
                                 },
                                 onOpenNotes: { contentType2 = .notes },
-                                onOpenBrowser: { contentType2 = .browser }
+                                onOpenBrowser: { contentType2 = .browser },
+                                onSwitchCanvas: { canvasIndex in
+                                    switchingFromCanvasIndex = canvasIndex
+                                    showingCanvasSwitcher = true
+                                }
                             )
                         }
                     }
@@ -222,6 +509,20 @@ struct CanvasView: View {
                     }
                 case .failure:
                     break
+                }
+            }
+            .sheet(isPresented: $showingCanvasSwitcher) {
+                if let sourceIndex = switchingFromCanvasIndex {
+                    CanvasSwitcherView(
+                        sourceCanvasIndex: sourceIndex,
+                        contentTypes: [contentType0, contentType1, contentType2],
+                        notes: [notes0, notes1, notes2],
+                        selectedPDFs: [selectedPDF0, selectedPDF1, selectedPDF2],
+                        browserAddresses: [browserAddress0, browserAddress1, browserAddress2],
+                        onSwitch: { targetIndex in
+                            switchCanvases(from: sourceIndex, to: targetIndex)
+                        }
+                    )
                 }
             }
         }
