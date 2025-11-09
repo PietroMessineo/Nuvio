@@ -24,6 +24,6 @@ class UserService: BaseService {
     }
     
     func getPlantDetails(imgUrl: String) async throws -> ChatCompletionResponse {
-        return try await perform(UserEndpoint.getPlantDetails(imgUrl: imgUrl), responseType: ChatCompletionResponse.self)
+        return try await perform(UserEndpoint.getPlantDetails(message: imgUrl), responseType: ChatCompletionResponse.self)
     }
 } 

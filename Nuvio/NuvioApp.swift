@@ -15,6 +15,7 @@ struct NuvioApp: App {
     
     @StateObject var userManager: UserManager = UserManager()
     @StateObject var keychainManager: KeychainManager = KeychainManager()
+    @StateObject var chatStreamService: ChatStreamService = ChatStreamService()
 
     var body: some Scene {
         WindowGroup {
@@ -22,9 +23,11 @@ struct NuvioApp: App {
                 CanvasView()
             }
             .environment(\.managedObjectContext, persistenceController.container.viewContext)
-            .environmentObject(UserManager())
+            .environmentObject(userManager)
             .task {
                 await createUser()
+                
+                // chatStreamService.startStream(messages: [AiMessageChunk(id: "1", role: "user", content: "What is catarratta?", type: "text")])
             }
         }
     }

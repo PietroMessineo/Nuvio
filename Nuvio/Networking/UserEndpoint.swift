@@ -10,7 +10,7 @@ import Foundation
 
 enum UserEndpoint {
     case createUser
-    case getPlantDetails(imgUrl: String)
+    case getPlantDetails(message: String)
 }
 
 extension UserEndpoint: Endpoint {
@@ -19,7 +19,7 @@ extension UserEndpoint: Endpoint {
         case .createUser:
             return "/api/v1/users"
         case .getPlantDetails:
-            return "/v1/chat/completions"
+            return "/v1/chat/simpleChatCompletion"
         }
     }
     
@@ -36,9 +36,9 @@ extension UserEndpoint: Endpoint {
             return nil
         case .getPlantDetails:
             #if DEBUG
-            return ["userid" : "user123", "User-Agent": "Plantrix"]
+            return ["userid" : "user123", "User-Agent": "Nuvio"]
             #else
-            return ["userid" : AppData.shared.userToken ?? "ERROR", "User-Agent": "Plantrix"]
+            return ["userid" : AppData.shared.userToken ?? "ERROR", "User-Agent": "Nuvio"]
             #endif
         }
     }
@@ -57,17 +57,12 @@ extension UserEndpoint: Endpoint {
                     [
                         "role": "system",
                         "content": """
-                        \(getLocalizedPromptContent())
+                        You are Nuvio, an iOS App used from students to learn or speedup their learning path.
                         """
                     ],
                     [
                         "role": "user",
-                        "content": [
-                            [
-                                "type": "image_url",
-                                "image_url": ["url": imgUrl]
-                            ]
-                        ]
+                        "content": imgUrl
                     ]
                 ]
             ]

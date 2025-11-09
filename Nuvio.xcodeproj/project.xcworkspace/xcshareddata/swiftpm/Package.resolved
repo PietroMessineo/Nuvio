@@ -11,6 +11,15 @@
       }
     },
     {
+      "identity" : "alamofire",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Alamofire/Alamofire",
+      "state" : {
+        "revision" : "513364f870f6bfc468f9d2ff0a95caccc10044c5",
+        "version" : "5.10.2"
+      }
+    },
+    {
       "identity" : "app-check",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/google/app-check.git",
@@ -115,7 +124,7 @@
       "location" : "https://github.com/PietroMessineo/Piadina",
       "state" : {
         "branch" : "main",
-        "revision" : "3f8d7f5d413d56621852107744102da993d5f225"
+        "revision" : "dd81031c837109f58fd7bca0260c4db3b2eb9d2b"
       }
     },
     {
