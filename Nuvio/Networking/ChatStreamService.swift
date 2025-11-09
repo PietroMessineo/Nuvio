@@ -20,6 +20,8 @@ class ChatStreamService: ObservableObject, @unchecked Sendable {
     @Published var error: StreamError?
     
     @Published var accumulatedTextForSpeech: [String] = []
+    // Buffer to accumulate partial SSE chunks across callbacks
+    private var sseBuffer: String = ""
 
     let chatCompletionURL = "http://142.44.242.207:3035/v1/responses"
     
@@ -142,45 +144,76 @@ class ChatStreamService: ObservableObject, @unchecked Sendable {
     
     @MainActor
     private func handleStreamData(_ data: Data, with id: String) throws {
-        guard let jsonString = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) else {
+        // Append incoming chunk to the SSE buffer, preserving partial events across callbacks
+        guard let chunkString = String(data: data, encoding: .utf8) else {
             throw StreamError.apiError(description: "Invalid encoding")
         }
-        
-        // Parse Server-Sent Events format - events are separated by double newlines
-        let eventBlocks = jsonString.components(separatedBy: "\n\n").filter { !$0.isEmpty }
-        
-        for eventBlock in eventBlocks {
-            let lines = eventBlock.components(separatedBy: "\n")
-            var currentEvent: String?
-            var currentData: String?
+        // Normalize CRLF to LF to ensure robust SSE splitting
+        let normalizedChunk = chunkString.replacingOccurrences(of: "\r\n", with: "\n")
+        print("Chunk string: \(normalizedChunk)")
+        // Accumulate chunk
+        sseBuffer += normalizedChunk
+
+        // Process complete events from buffer
+        while true {
+            // Find the next complete event (event + data + double newline)
+            let eventPattern = "event: ([^\n]+)\ndata: ([^\n]+(?:\n(?!event:)[^\n]*)*)\n\n"
+            let regex = try! NSRegularExpression(pattern: eventPattern, options: [.dotMatchesLineSeparators])
+            let range = NSRange(sseBuffer.startIndex..<sseBuffer.endIndex, in: sseBuffer)
             
-            for line in lines {
-                let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard let match = regex.firstMatch(in: sseBuffer, options: [], range: range) else {
+                // No complete event found, wait for more data
+                break
+            }
+            
+            // Extract event and data
+            let eventRange = Range(match.range(at: 1), in: sseBuffer)!
+            let dataRange = Range(match.range(at: 2), in: sseBuffer)!
+            let event = String(sseBuffer[eventRange])
+            let dataPayload = String(sseBuffer[dataRange])
+            
+            // For delta events, validate JSON before processing
+            if event == "response.output_text.delta" {
+                // Always remove any loading placeholder before handling deltas
+                self.messages.removeAll(where: { $0.role == "loading" })
                 
-                if trimmedLine.hasPrefix("event: ") {
-                    currentEvent = String(trimmedLine.dropFirst(7)) // Remove "event: "
-                } else if trimmedLine.hasPrefix("data: ") {
-                    currentData = String(trimmedLine.dropFirst(6)) // Remove "data: "
+                if let jsonData = dataPayload.data(using: .utf8),
+                   let jsonObject = try? JSONSerialization.jsonObject(with: jsonData),
+                   let dict = jsonObject as? [String: Any],
+                   let delta = dict["delta"] as? String {
+                    
+                    print("Processing SSE event: \(event)")
+                    print("Delta content received: \(delta)")
+                    
+                    // Process the delta immediately
+                    if let index = self.messages.firstIndex(where: { $0.id == id }) {
+                        self.messages[index].content += delta
+                    } else {
+                        let chunk = AiMessageChunk(id: id, role: "assistant", content: delta, type: "output_text")
+                        self.messages.append(chunk)
+                    }
+                    
+                    print("Message appended, current content length: \(self.messages.last?.content.count ?? 0)")
+                    self.processMessages()
+                }
+            } else {
+                // Process other events normally but don't throw for ignored ones
+                do {
+                    try processServerSentEvent(event: event, data: dataPayload, chatId: id)
+                } catch StreamError.ignoredEvent {
+                    // Silently ignore these events
                 }
             }
             
-            // Process the data if we have both event and data
-            if let event = currentEvent, let data = currentData, !data.isEmpty {
-                // Check for error conditions in the actual JSON data only
-                if data.contains("context_length_exceeded") {
-                    throw StreamError.apiError(description: "Context length exceeded.")
-                } else if data.contains("\"error\":") && !data.contains("\"error\":null") {
-                    throw StreamError.apiError(description: data)
-                }
-                
-                try processServerSentEvent(event: event, data: data, chatId: id)
-            }
+            // Remove the processed event from buffer
+            let matchRange = Range(match.range, in: sseBuffer)!
+            sseBuffer.removeSubrange(matchRange)
         }
     }
     
     @MainActor
     private func processServerSentEvent(event: String, data: String, chatId: String) throws {
-        print("Event: \(event), Data: \(data)")
+        // print("Event: \(event), Data: \(data)")
         // Handle different SSE event types
         switch event {
         case "response.created":
@@ -219,37 +252,7 @@ class ChatStreamService: ObservableObject, @unchecked Sendable {
             
         case "response.output_text.delta":
             // This is the only event we actually need to process
-            print("Processing SSE event: \(event)")
-            
-            self.messages.removeAll(where: {$0.role == "loading"})
-            
-            guard let jsonData = data.data(using: .utf8) else {
-                throw StreamError.apiError(description: "Failed to convert data to UTF8")
-            }
-            
-            do {
-                let decoder = JSONDecoder()
-                let deltaEvent = try decoder.decode(OutputTextDelta.self, from: jsonData)
-                
-                // Extract the delta content
-                guard let deltaContent = deltaEvent.delta, !deltaContent.isEmpty else { return }
-                
-                // Find existing message or create new one
-                if let index = self.messages.firstIndex(where: { $0.id == chatId }) {
-                    self.messages[index].content += deltaContent
-                } else {
-                    // New message, create and assign ID
-                    let chunk = AiMessageChunk(id: chatId, role: "assistant", content: deltaContent, type: "output_text")
-                    self.messages.append(chunk)
-                }
-                
-                print("Message appended, current content length: \(self.messages.last?.content.count ?? 0)")
-                self.processMessages()
-                
-            } catch {
-                throw StreamError.parsingError(description: error.localizedDescription)
-            }
-            
+            print("🚨 NOT Processing SSE event 🚨 : \(event)")
         default:
             // Unknown event type - log it but don't treat as error
             print("ℹ️ Unknown SSE event type: \(event)")
@@ -315,3 +318,4 @@ enum StreamError: Error {
     case apiError(description: String)
     case ignoredEvent // For SSE events we don't need to process
 }
+
