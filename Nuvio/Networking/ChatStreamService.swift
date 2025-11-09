@@ -155,46 +155,61 @@ class ChatStreamService: ObservableObject, @unchecked Sendable {
             throw StreamError.apiError(description: jsonString)
         }
         
-        // Use "\n\n" to separate between multiple messages or chunks,
-        // and replace any occurrences of duplicated "data: " prefixes
-        let cleanedString = jsonString.replacingOccurrences(of: "data: data: ", with: "data: ")
-        let dataBlocks = cleanedString.components(separatedBy: "\n\n")
-
-        for block in dataBlocks {
-            // Further clean up to ensure only one "data: " prefix remains for decoding.
-            let subBlocks = block.components(separatedBy: "\n").filter { $0.hasPrefix("data: ") }
+        // Parse Server-Sent Events format - events are separated by double newlines
+        let eventBlocks = jsonString.components(separatedBy: "\n\n").filter { !$0.isEmpty }
+        
+        for eventBlock in eventBlocks {
+            let lines = eventBlock.components(separatedBy: "\n")
+            var currentEvent: String?
+            var currentData: String?
             
-            for subBlock in subBlocks {
-                let chunkJsonString = subBlock.replacingOccurrences(of: "data: ", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
-                if chunkJsonString.isEmpty { continue }
+            for line in lines {
+                let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
                 
-                guard let cleanedData = chunkJsonString.data(using: .utf8) else {
-                    throw StreamError.apiError(description: "Data cleaning error")
-                }
-                
-                do {
-                    let decoder = JSONDecoder()
-                    print("Decoding \(chunkJsonString) for data \(String(data: data, encoding: .utf8)) And cleaned string \(cleanedString) and data blocks \(dataBlocks)")
-                    let chatCompletionChunk = try decoder.decode(ChatCompletionStream.self, from: cleanedData)
-                    
-                    if let index = self.messages.firstIndex(where: {$0.id == id}) {
-                        if let content = chatCompletionChunk.choices?.first?.delta?.content {
-                            self.messages[index].content += content
-                        }
-                    } else {
-                        // New message, create and assign ID
-                        if let content = chatCompletionChunk.choices?.first?.delta?.content {
-                            let chunk: AiMessageChunk = AiMessageChunk(id: id, role: "assistant", content: content, type: "input_text")
-                            self.messages.append(chunk)
-                        }
-                    }
-                    
-                    print("Message appended full \(self.messages)")
-                    self.processMessages()
-                } catch {
-                    throw StreamError.parsingError(description: error.localizedDescription)
+                if trimmedLine.hasPrefix("event: ") {
+                    currentEvent = String(trimmedLine.dropFirst(7)) // Remove "event: "
+                } else if trimmedLine.hasPrefix("data: ") {
+                    currentData = String(trimmedLine.dropFirst(6)) // Remove "data: "
                 }
             }
+            
+            // Process the data if we have both event and data
+            if let event = currentEvent, let data = currentData, !data.isEmpty {
+                try processServerSentEvent(event: event, data: data, chatId: id)
+            }
+        }
+    }
+    
+    @MainActor
+    private func processServerSentEvent(event: String, data: String, chatId: String) throws {
+        // Only process text delta events that contain actual content
+        guard event == "response.output_text.delta" else { return }
+        
+        guard let jsonData = data.data(using: .utf8) else {
+            throw StreamError.apiError(description: "Failed to convert data to UTF8")
+        }
+        
+        do {
+            let decoder = JSONDecoder()
+            let deltaEvent = try decoder.decode(OutputTextDelta.self, from: jsonData)
+            
+            // Extract the delta content
+            guard let deltaContent = deltaEvent.delta, !deltaContent.isEmpty else { return }
+            
+            // Find existing message or create new one
+            if let index = self.messages.firstIndex(where: { $0.id == chatId }) {
+                self.messages[index].content += deltaContent
+            } else {
+                // New message, create and assign ID
+                let chunk = AiMessageChunk(id: chatId, role: "assistant", content: deltaContent, type: "input_text")
+                self.messages.append(chunk)
+            }
+            
+            print("Message appended full \(self.messages)")
+            self.processMessages()
+            
+        } catch {
+            throw StreamError.parsingError(description: error.localizedDescription)
         }
     }
         
@@ -224,6 +239,29 @@ class ChatStreamService: ObservableObject, @unchecked Sendable {
                 }
             }
         }
+    }
+}
+
+// MARK: - Stream Event Models
+struct OutputTextDelta: Codable {
+    let type: String
+    let sequenceNumber: Int?
+    let itemId: String?
+    let outputIndex: Int?
+    let contentIndex: Int?
+    let delta: String?
+    let logprobs: [String]?
+    let obfuscation: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case type
+        case sequenceNumber = "sequence_number"
+        case itemId = "item_id"
+        case outputIndex = "output_index"
+        case contentIndex = "content_index"
+        case delta
+        case logprobs
+        case obfuscation
     }
 }
 

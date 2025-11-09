@@ -34,36 +34,6 @@
             endingLineNumber = "101"
             landmarkName = "performStreamRequest(with:userToken:)"
             landmarkType = "7">
-            <Locations>
-               <Location
-                  uuid = "862B2527-1D6D-4F0D-A67F-D68BD7CDD705 - f3ec903276d7f73d"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "closure #1 @Sendable (Alamofire.DataStreamRequest.Stream&lt;Foundation.Data, Swift.Never&gt;) throws -&gt; () in Nuvio.ChatStreamService.performStreamRequest(with: Nuvio.OpenAIRequest, userToken: Swift.String) -&gt; ()"
-                  moduleName = "Nuvio.debug.dylib"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/pmessineo/Documents/Projects/Experiments/Nuvio/Nuvio/Networking/ChatStreamService.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "101"
-                  endingLineNumber = "101">
-               </Location>
-               <Location
-                  uuid = "862B2527-1D6D-4F0D-A67F-D68BD7CDD705 - f3ec903276d7f73d"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "closure #1 @Sendable (Alamofire.DataStreamRequest.Stream&lt;Foundation.Data, Swift.Never&gt;) throws -&gt; () in Nuvio.ChatStreamService.performStreamRequest(with: Nuvio.OpenAIRequest, userToken: Swift.String) -&gt; ()"
-                  moduleName = "Nuvio.debug.dylib"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/pmessineo/Documents/Projects/Experiments/Nuvio/Nuvio/Networking/ChatStreamService.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "101"
-                  endingLineNumber = "101">
-               </Location>
-            </Locations>
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
