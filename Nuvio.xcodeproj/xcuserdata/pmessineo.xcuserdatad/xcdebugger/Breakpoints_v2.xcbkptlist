@@ -3,4 +3,84 @@
    uuid = "77A07DF5-C21C-4BAD-9CA6-410493A901D7"
    type = "1"
    version = "2.0">
+   <Breakpoints>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "88F3B30B-2B93-44AF-8C45-6BA40F27F53D"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "Nuvio/Networking/ChatStreamService.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "107"
+            endingLineNumber = "107"
+            landmarkName = "performStreamRequest(with:userToken:)"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "862B2527-1D6D-4F0D-A67F-D68BD7CDD705"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "Nuvio/Networking/ChatStreamService.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "101"
+            endingLineNumber = "101"
+            landmarkName = "performStreamRequest(with:userToken:)"
+            landmarkType = "7">
+            <Locations>
+               <Location
+                  uuid = "862B2527-1D6D-4F0D-A67F-D68BD7CDD705 - f3ec903276d7f73d"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "closure #1 @Sendable (Alamofire.DataStreamRequest.Stream&lt;Foundation.Data, Swift.Never&gt;) throws -&gt; () in Nuvio.ChatStreamService.performStreamRequest(with: Nuvio.OpenAIRequest, userToken: Swift.String) -&gt; ()"
+                  moduleName = "Nuvio.debug.dylib"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/pmessineo/Documents/Projects/Experiments/Nuvio/Nuvio/Networking/ChatStreamService.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "101"
+                  endingLineNumber = "101">
+               </Location>
+               <Location
+                  uuid = "862B2527-1D6D-4F0D-A67F-D68BD7CDD705 - f3ec903276d7f73d"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "closure #1 @Sendable (Alamofire.DataStreamRequest.Stream&lt;Foundation.Data, Swift.Never&gt;) throws -&gt; () in Nuvio.ChatStreamService.performStreamRequest(with: Nuvio.OpenAIRequest, userToken: Swift.String) -&gt; ()"
+                  moduleName = "Nuvio.debug.dylib"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/pmessineo/Documents/Projects/Experiments/Nuvio/Nuvio/Networking/ChatStreamService.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "101"
+                  endingLineNumber = "101">
+               </Location>
+            </Locations>
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "A645C561-8B43-4EFA-84D2-D7039EF687C8"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "Nuvio/Networking/ChatStreamService.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "100"
+            endingLineNumber = "100"
+            landmarkName = "performStreamRequest(with:userToken:)"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+   </Breakpoints>
 </Bucket>

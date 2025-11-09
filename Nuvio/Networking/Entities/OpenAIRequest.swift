@@ -9,12 +9,9 @@ import Foundation
 
 struct OpenAIRequest: Encodable, Sendable {
     let model: String
-    let messages: [AiMessage]
-    let n: Int
-    let temperature: Int
+    let input: [AiMessage]
     let user: String
     let stream: Bool
-    let max_tokens: Int
 }
 
 struct AiMessage: Codable, Sendable {

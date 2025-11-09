@@ -27,7 +27,7 @@ struct NuvioApp: App {
             .task {
                 await createUser()
                 
-                // chatStreamService.startStream(messages: [AiMessageChunk(id: "1", role: "user", content: "What is catarratta?", type: "text")])
+                chatStreamService.startStream(messages: [AiMessageChunk(id: "1", role: "user", content: "What is catarratta?", type: "input_text")])
             }
         }
     }

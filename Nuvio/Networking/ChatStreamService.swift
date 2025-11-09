@@ -20,7 +20,7 @@ class ChatStreamService: ObservableObject, @unchecked Sendable {
     
     @Published var accumulatedTextForSpeech: [String] = []
 
-    let chatCompletionURL = "http://142.44.242.207:3035/v1/chat/simpleChatCompletion"
+    let chatCompletionURL = "http://142.44.242.207:3035/v1/responses"
     
     func startStream(messages: [AiMessageChunk]) {
         print("Start stream with messages \(messages)")
@@ -43,12 +43,12 @@ class ChatStreamService: ObservableObject, @unchecked Sendable {
         let content = "You are Nuvio, an iOS App used from students to learn or speedup their learning path."
         
         // Insert system message
-        editedMessages.insert(AiMessageChunk(id: "", role: "system", content: content, type: "text"), at: 0)
+        editedMessages.insert(AiMessageChunk(id: "", role: "system", content: content, type: "input_text"), at: 0)
         
         let openAIRequest = OpenAIRequest(
-            model: "gpt-4.1-nano",
-            messages: editedMessages.filter({$0.role != "loader"}).map({ message in
-                if message.type == "text" {
+            model: "gpt-5-nano",
+            input: editedMessages.filter({$0.role != "loader"}).map({ message in
+                if message.type == "input_text" {
                     return AiMessage(role: message.role, content: [Content(type: message.type, text: message.content, image_url: nil)])
                 } else if message.type == "image_url" {
                     return AiMessage(role: message.role, content: [Content(type: message.type, text: nil, image_url: AiImage(url: message.content))])
@@ -57,11 +57,8 @@ class ChatStreamService: ObservableObject, @unchecked Sendable {
                     return AiMessage(role: message.role, content: [Content(type: message.type, text: message.content, image_url: nil)])
                 }
             }),
-            n: 1,
-            temperature: 0,
             user: userToken,
-            stream: true,
-            max_tokens: 3000
+            stream: true
         )
         
         let encoder = JSONEncoder()
@@ -187,7 +184,7 @@ class ChatStreamService: ObservableObject, @unchecked Sendable {
                     } else {
                         // New message, create and assign ID
                         if let content = chatCompletionChunk.choices?.first?.delta?.content {
-                            let chunk: AiMessageChunk = AiMessageChunk(id: id, role: "assistant", content: content, type: "text")
+                            let chunk: AiMessageChunk = AiMessageChunk(id: id, role: "assistant", content: content, type: "input_text")
                             self.messages.append(chunk)
                         }
                     }
