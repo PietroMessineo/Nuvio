@@ -69,9 +69,9 @@ struct CanvasPane: View {
                 } label: {
                     Image(systemName: "checkmark.rectangle.stack")
                         .foregroundStyle(Color.primary)
+                        .padding()
+                        .glassEffect(.regular.interactive(), in: Circle())
                 }
-                .padding()
-                .glassEffect(.regular.interactive(), in: Circle())
             }
             .padding()
         }
