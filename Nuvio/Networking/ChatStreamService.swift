@@ -107,19 +107,24 @@ class ChatStreamService: ObservableObject, @unchecked Sendable {
                         do {
                             try self?.handleStreamData(data, with: chatId)
                         } catch {
-                            // Only log actual errors, not just ignored event types
-                            if let streamError = error as? StreamError {
-                                print("⚠️ Stream error: \(streamError)")
-                                print("Data: \(String(data: data, encoding: .utf8) ?? "nil")")
-                            }
-                            
-                            // Check for stream completion
+                            // Check for stream completion first
                             if let stringData = String(data: data, encoding: .utf8), 
-                               (stringData.contains("[DONE]") || stringData.contains("response.completed")) {
+                               stringData.contains("response.completed") {
                                 if (self?.messages.count ?? 0) >= 2 {
                                     // TODO: - Store message in our backend
                                     print("✅ Stream completed, message count: \(self?.messages.count ?? 0)")
                                 }
+                                return // Don't treat completion as an error
+                            }
+                            
+                            // Only log actual errors, not ignored event types
+                            if let streamError = error as? StreamError {
+                                // Don't log errors for normal SSE events that we just ignore
+                                if case .ignoredEvent = streamError {
+                                    return
+                                }
+                                print("⚠️ Stream error: \(streamError)")
+                                self?.error = streamError
                             }
                         }
                     case .failure(let error):
@@ -142,13 +147,6 @@ class ChatStreamService: ObservableObject, @unchecked Sendable {
             throw StreamError.apiError(description: "Invalid encoding")
         }
         
-        // Check for error conditions
-        if jsonString.contains("context_length_exceeded") {
-            throw StreamError.apiError(description: "Context length exceeded.")
-        } else if jsonString.contains("\"error\":") {
-            throw StreamError.apiError(description: jsonString)
-        }
-        
         // Parse Server-Sent Events format - events are separated by double newlines
         let eventBlocks = jsonString.components(separatedBy: "\n\n").filter { !$0.isEmpty }
         
@@ -169,6 +167,13 @@ class ChatStreamService: ObservableObject, @unchecked Sendable {
             
             // Process the data if we have both event and data
             if let event = currentEvent, let data = currentData, !data.isEmpty {
+                // Check for error conditions in the actual JSON data only
+                if data.contains("context_length_exceeded") {
+                    throw StreamError.apiError(description: "Context length exceeded.")
+                } else if data.contains("\"error\":") && !data.contains("\"error\":null") {
+                    throw StreamError.apiError(description: data)
+                }
+                
                 try processServerSentEvent(event: event, data: data, chatId: id)
             }
         }
@@ -176,40 +181,75 @@ class ChatStreamService: ObservableObject, @unchecked Sendable {
     
     @MainActor
     private func processServerSentEvent(event: String, data: String, chatId: String) throws {
-        // Log all events for debugging
-        print("Processing SSE event: \(event)")
-        
-        // Only process text delta events that contain actual content
-        // Silently ignore other event types (response.created, response.in_progress, etc.)
-        guard event == "response.output_text.delta" else { 
-            return 
-        }
-        
-        guard let jsonData = data.data(using: .utf8) else {
-            throw StreamError.apiError(description: "Failed to convert data to UTF8")
-        }
-        
-        do {
-            let decoder = JSONDecoder()
-            let deltaEvent = try decoder.decode(OutputTextDelta.self, from: jsonData)
+        // Handle different SSE event types
+        switch event {
+        case "response.created":
+            // Stream initialization - silently ignore
+            throw StreamError.ignoredEvent
             
-            // Extract the delta content
-            guard let deltaContent = deltaEvent.delta, !deltaContent.isEmpty else { return }
+        case "response.in_progress":
+            // Stream in progress - silently ignore
+            throw StreamError.ignoredEvent
             
-            // Find existing message or create new one
-            if let index = self.messages.firstIndex(where: { $0.id == chatId }) {
-                self.messages[index].content += deltaContent
-            } else {
-                // New message, create and assign ID
-                let chunk = AiMessageChunk(id: chatId, role: "assistant", content: deltaContent, type: "input_text")
-                self.messages.append(chunk)
+        case "response.output_item.added":
+            // New output item added - silently ignore
+            throw StreamError.ignoredEvent
+            
+        case "response.output_item.done":
+            // Output item completed - silently ignore
+            throw StreamError.ignoredEvent
+            
+        case "response.content_part.added":
+            // Content part added - silently ignore
+            throw StreamError.ignoredEvent
+            
+        case "response.content_part.done":
+            // Content part done - silently ignore
+            throw StreamError.ignoredEvent
+            
+        case "response.output_text.done":
+            // Text output completed - silently ignore
+            throw StreamError.ignoredEvent
+            
+        case "response.completed":
+            // Stream completed - silently ignore (handled in error handling)
+            throw StreamError.ignoredEvent
+            
+        case "response.output_text.delta":
+            // This is the only event we actually need to process
+            print("Processing SSE event: \(event)")
+            
+            guard let jsonData = data.data(using: .utf8) else {
+                throw StreamError.apiError(description: "Failed to convert data to UTF8")
             }
             
-            print("Message appended, current content length: \(self.messages.last?.content.count ?? 0)")
-            self.processMessages()
+            do {
+                let decoder = JSONDecoder()
+                let deltaEvent = try decoder.decode(OutputTextDelta.self, from: jsonData)
+                
+                // Extract the delta content
+                guard let deltaContent = deltaEvent.delta, !deltaContent.isEmpty else { return }
+                
+                // Find existing message or create new one
+                if let index = self.messages.firstIndex(where: { $0.id == chatId }) {
+                    self.messages[index].content += deltaContent
+                } else {
+                    // New message, create and assign ID
+                    let chunk = AiMessageChunk(id: chatId, role: "assistant", content: deltaContent, type: "input_text")
+                    self.messages.append(chunk)
+                }
+                
+                print("Message appended, current content length: \(self.messages.last?.content.count ?? 0)")
+                self.processMessages()
+                
+            } catch {
+                throw StreamError.parsingError(description: error.localizedDescription)
+            }
             
-        } catch {
-            throw StreamError.parsingError(description: error.localizedDescription)
+        default:
+            // Unknown event type - log it but don't treat as error
+            print("ℹ️ Unknown SSE event type: \(event)")
+            throw StreamError.ignoredEvent
         }
     }
         
@@ -269,4 +309,5 @@ enum StreamError: Error {
     case parsingError(description: String)
     case networkError(description: String)
     case apiError(description: String)
+    case ignoredEvent // For SSE events we don't need to process
 }
