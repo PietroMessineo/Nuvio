@@ -15,7 +15,6 @@ struct NuvioApp: App {
     
     @StateObject var userManager: UserManager = UserManager()
     @StateObject var keychainManager: KeychainManager = KeychainManager()
-    @StateObject var chatStreamService: ChatStreamService = ChatStreamService()
 
     var body: some Scene {
         WindowGroup {
@@ -24,7 +23,6 @@ struct NuvioApp: App {
             }
             .environment(\.managedObjectContext, persistenceController.container.viewContext)
             .environmentObject(userManager)
-            .environmentObject(chatStreamService)
             .task {
                 await createUser()
             }

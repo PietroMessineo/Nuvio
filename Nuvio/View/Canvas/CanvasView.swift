@@ -106,7 +106,7 @@ struct CanvasNotesView: View {
 }
 
 struct CanvasAiView: View {
-    @EnvironmentObject var chatStreamService: ChatStreamService
+    @StateObject private var chatStreamService = ChatStreamService()
     
     @State var promptText: String = ""
     @Binding var messageContent: [AiMessageChunk]
@@ -168,6 +168,14 @@ struct CanvasAiView: View {
         }
         .padding(20)
         .background(Color(hex: "F1F1F1"))
+        .onAppear {
+            // Initialize the chat service with existing messages
+            chatStreamService.messages = messageContent
+        }
+        .onChange(of: chatStreamService.messages) { _, newMessages in
+            // Sync local chat service changes back to the binding
+            messageContent = newMessages
+        }
     }
 }
 
@@ -670,6 +678,5 @@ struct CanvasView: View {
 #Preview {
     NavigationStack {
         CanvasView()
-            .environmentObject(ChatStreamService())
     }
 }
