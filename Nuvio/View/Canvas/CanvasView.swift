@@ -21,6 +21,7 @@ struct CanvasPane: View {
     @Binding var canGoForward: Bool
     @Binding var goBackTrigger: Bool
     @Binding var goForwardTrigger: Bool
+    @Binding var messageContent: [AiMessageChunk]
 
     var onPickDocument: () -> Void
     var onOpenNotes: () -> Void
@@ -55,7 +56,7 @@ struct CanvasPane: View {
                     goForwardTrigger: $goForwardTrigger
                 )
             case .ai:
-                CanvasAiView()
+                CanvasAiView(messageContent: $messageContent)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -108,11 +109,32 @@ struct CanvasAiView: View {
     @EnvironmentObject var chatStreamService: ChatStreamService
     
     @State var promptText: String = ""
+    @Binding var messageContent: [AiMessageChunk]
     
     var body: some View {
         VStack(alignment: .leading) {
-            List(chatStreamService.messages) { messages in
-                Text(messages.content)
+            List(chatStreamService.messages) { message in
+                Section {
+                    // Show progress indicator on left side
+                    if message.role == "loading" {
+                        ProgressView()
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    } else if message.role == "assistant" {
+                        Text(message.content)
+                            .multilineTextAlignment(.leading)
+                    } else {
+                        ZStack {
+                            Text(message.content)
+                        }
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 19)
+                        .background(Color.init(uiColor: .systemGray4))
+                        .clipShape(RoundedRectangle(cornerRadius: 22))
+                        .padding(.leading, 160)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                    }
+                }
+                .listRowBackground(Color.clear)
             }
             .scrollContentBackground(.hidden)
             
@@ -122,7 +144,10 @@ struct CanvasAiView: View {
                 }
                 
                 Button {
-                    // TODO: - Send chat
+                    chatStreamService.messages.append(AiMessageChunk(id: UUID().uuidString, role: "user", content: promptText, type: "input_text"))
+                    messageContent = chatStreamService.messages
+                    chatStreamService.startStream(messages: messageContent)
+                    promptText = ""
                 } label: {
                     Image(systemName: "arrow.up")
                         .fontWeight(.bold)
@@ -132,6 +157,8 @@ struct CanvasAiView: View {
                 .padding(.horizontal, 16)
                 .background(Color.blue)
                 .clipShape(Capsule())
+                .disabled(promptText.isEmpty || promptText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .opacity((promptText.isEmpty || promptText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) ? 0.5 : 1)
             }
             .padding(.leading, 21)
             .padding(.trailing, 7)
@@ -326,6 +353,7 @@ struct CanvasData {
     var canGoForward: Bool = false
     var goBackTrigger: Bool = false
     var goForwardTrigger: Bool = false
+    var messageContent: [AiMessageChunk] = []
 }
 
 struct CanvasView: View {
@@ -366,6 +394,10 @@ struct CanvasView: View {
     @State private var goBackTrigger2: Bool = false
     @State private var goForwardTrigger2: Bool = false
     
+    @State private var messageContent0: [AiMessageChunk] = []
+    @State private var messageContent1: [AiMessageChunk] = []
+    @State private var messageContent2: [AiMessageChunk] = []
+    
     // Helper methods for canvas switching
     private func switchCanvases(from sourceIndex: Int, to targetIndex: Int) {
         // Store source canvas data
@@ -389,7 +421,8 @@ struct CanvasView: View {
                 canGoBack: canGoBack0,
                 canGoForward: canGoForward0,
                 goBackTrigger: goBackTrigger0,
-                goForwardTrigger: goForwardTrigger0
+                goForwardTrigger: goForwardTrigger0,
+                messageContent: messageContent0
             )
         case 1:
             return CanvasData(
@@ -401,7 +434,8 @@ struct CanvasView: View {
                 canGoBack: canGoBack1,
                 canGoForward: canGoForward1,
                 goBackTrigger: goBackTrigger1,
-                goForwardTrigger: goForwardTrigger1
+                goForwardTrigger: goForwardTrigger1,
+                messageContent: messageContent1
             )
         case 2:
             return CanvasData(
@@ -413,7 +447,8 @@ struct CanvasView: View {
                 canGoBack: canGoBack2,
                 canGoForward: canGoForward2,
                 goBackTrigger: goBackTrigger2,
-                goForwardTrigger: goForwardTrigger2
+                goForwardTrigger: goForwardTrigger2,
+                messageContent: messageContent2
             )
         default:
             return CanvasData()
@@ -432,6 +467,7 @@ struct CanvasView: View {
             canGoForward0 = data.canGoForward
             goBackTrigger0 = data.goBackTrigger
             goForwardTrigger0 = data.goForwardTrigger
+            messageContent0 = data.messageContent
         case 1:
             contentType1 = data.contentType
             selectedPDF1 = data.selectedPDF
@@ -442,6 +478,7 @@ struct CanvasView: View {
             canGoForward1 = data.canGoForward
             goBackTrigger1 = data.goBackTrigger
             goForwardTrigger1 = data.goForwardTrigger
+            messageContent1 = data.messageContent
         case 2:
             contentType2 = data.contentType
             selectedPDF2 = data.selectedPDF
@@ -452,6 +489,7 @@ struct CanvasView: View {
             canGoForward2 = data.canGoForward
             goBackTrigger2 = data.goBackTrigger
             goForwardTrigger2 = data.goForwardTrigger
+            messageContent2 = data.messageContent
         default:
             break
         }
@@ -472,6 +510,7 @@ struct CanvasView: View {
                         canGoForward: $canGoForward0,
                         goBackTrigger: $goBackTrigger0,
                         goForwardTrigger: $goForwardTrigger0,
+                        messageContent: $messageContent0,
                         onPickDocument: {
                             importingCanvasIndex = 0
                             showingImporter = true
@@ -499,6 +538,7 @@ struct CanvasView: View {
                             canGoForward: $canGoForward1,
                             goBackTrigger: $goBackTrigger1,
                             goForwardTrigger: $goForwardTrigger1,
+                            messageContent: $messageContent1,
                             onPickDocument: {
                                 importingCanvasIndex = 1
                                 showingImporter = true
@@ -526,6 +566,7 @@ struct CanvasView: View {
                                 canGoForward: $canGoForward2,
                                 goBackTrigger: $goBackTrigger2,
                                 goForwardTrigger: $goForwardTrigger2,
+                                messageContent: $messageContent2,
                                 onPickDocument: {
                                     importingCanvasIndex = 2
                                     showingImporter = true

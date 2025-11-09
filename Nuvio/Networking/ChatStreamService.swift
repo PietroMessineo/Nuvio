@@ -15,6 +15,7 @@ import Piadina
 class ChatStreamService: ObservableObject, @unchecked Sendable {
     
     @Published var messages: [AiMessageChunk] = []
+    @Published var inProgress: Bool = false
     
     @Published var error: StreamError?
     
@@ -25,16 +26,14 @@ class ChatStreamService: ObservableObject, @unchecked Sendable {
     func startStream(messages: [AiMessageChunk]) {
         print("Start stream with messages \(messages)")
         
-        Task {
-            // Get the user token on the main actor
-            let userToken = AppData.shared.userToken ?? ""
-            
-            // Move the request creation to a nonisolated context
-            let openAIRequest = await self.createOpenAIRequest(from: messages, userToken: userToken)
-            
-            // Perform the network request on the main actor
-            await self.performStreamRequest(with: openAIRequest, userToken: userToken)
-        }
+        // Get the user token on the main actor
+        let userToken = AppData.shared.userToken ?? ""
+        
+        // Move the request creation to a nonisolated context
+        let openAIRequest = self.createOpenAIRequest(from: messages, userToken: userToken)
+        
+        // Perform the network request on the main actor
+        self.performStreamRequest(with: openAIRequest, userToken: userToken)
     }
     
     private nonisolated func createOpenAIRequest(from messages: [AiMessageChunk], userToken: String) -> OpenAIRequest {
@@ -181,6 +180,7 @@ class ChatStreamService: ObservableObject, @unchecked Sendable {
     
     @MainActor
     private func processServerSentEvent(event: String, data: String, chatId: String) throws {
+        print("Event: \(event), Data: \(data)")
         // Handle different SSE event types
         switch event {
         case "response.created":
@@ -189,6 +189,8 @@ class ChatStreamService: ObservableObject, @unchecked Sendable {
             
         case "response.in_progress":
             // Stream in progress - silently ignore
+            let chunk = AiMessageChunk(id: chatId, role: "loading", content: "", type: "input_text")
+            self.messages.append(chunk)
             throw StreamError.ignoredEvent
             
         case "response.output_item.added":
@@ -219,6 +221,8 @@ class ChatStreamService: ObservableObject, @unchecked Sendable {
             // This is the only event we actually need to process
             print("Processing SSE event: \(event)")
             
+            self.messages.removeAll(where: {$0.role == "loading"})
+            
             guard let jsonData = data.data(using: .utf8) else {
                 throw StreamError.apiError(description: "Failed to convert data to UTF8")
             }
@@ -235,7 +239,7 @@ class ChatStreamService: ObservableObject, @unchecked Sendable {
                     self.messages[index].content += deltaContent
                 } else {
                     // New message, create and assign ID
-                    let chunk = AiMessageChunk(id: chatId, role: "assistant", content: deltaContent, type: "input_text")
+                    let chunk = AiMessageChunk(id: chatId, role: "assistant", content: deltaContent, type: "output_text")
                     self.messages.append(chunk)
                 }
                 
