@@ -622,20 +622,18 @@ struct CanvasView: View {
                     break
                 }
             }
-            .sheet(isPresented: $showingCanvasSwitcher) {
-                if let sourceIndex = switchingFromCanvasIndex {
-                    CanvasSwitcherView(
-                        sourceCanvasIndex: sourceIndex,
-                        contentTypes: [contentType0, contentType1, contentType2],
-                        notes: [notes0, notes1, notes2],
-                        selectedPDFs: [selectedPDF0, selectedPDF1, selectedPDF2],
-                        browserAddresses: [browserAddress0, browserAddress1, browserAddress2],
-                        onSwitch: { targetIndex in
-                            switchCanvases(from: sourceIndex, to: targetIndex)
-                        }
-                    )
-                }
-            }
+            .sheet(item: $switchingFromCanvasIndex, content: { sourceIndex in
+                CanvasSwitcherView(
+                    sourceCanvasIndex: sourceIndex,
+                    contentTypes: [contentType0, contentType1, contentType2],
+                    notes: [notes0, notes1, notes2],
+                    selectedPDFs: [selectedPDF0, selectedPDF1, selectedPDF2],
+                    browserAddresses: [browserAddress0, browserAddress1, browserAddress2],
+                    onSwitch: { targetIndex in
+                        switchCanvases(from: sourceIndex, to: targetIndex)
+                    }
+                )
+            })
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .toolbar {
