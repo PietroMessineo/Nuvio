@@ -7,10 +7,14 @@
 
 import SwiftUI
 import CoreData
+import Piadina
 
 @main
 struct NuvioApp: App {
     let persistenceController = PersistenceController.shared
+    
+    @StateObject var userManager: UserManager = UserManager()
+    @StateObject var keychainManager: KeychainManager = KeychainManager()
 
     var body: some Scene {
         WindowGroup {
@@ -18,6 +22,24 @@ struct NuvioApp: App {
                 CanvasView()
             }
             .environment(\.managedObjectContext, persistenceController.container.viewContext)
+            .environmentObject(UserManager())
+            .task {
+                await createUser()
+            }
+        }
+    }
+    
+    private func createUser() async {
+        let userId = keychainManager.userId
+        
+        if !userId.isEmpty {
+            AppData.shared.userToken = userId
+            
+            do {
+                try await userManager.createUser()
+            } catch {
+                print("Error creating user \(error.localizedDescription)")
+            }
         }
     }
 }
