@@ -107,23 +107,18 @@ class ChatStreamService: ObservableObject, @unchecked Sendable {
                         do {
                             try self?.handleStreamData(data, with: chatId)
                         } catch {
-                            print("Error handling stream data \(error.localizedDescription) AND Data \(String(data: data, encoding: .utf8))")
+                            // Only log actual errors, not just ignored event types
+                            if let streamError = error as? StreamError {
+                                print("⚠️ Stream error: \(streamError)")
+                                print("Data: \(String(data: data, encoding: .utf8) ?? "nil")")
+                            }
                             
-                            if let stringData = String(data: data, encoding: .utf8), stringData.contains("[DONE]") {
+                            // Check for stream completion
+                            if let stringData = String(data: data, encoding: .utf8), 
+                               (stringData.contains("[DONE]") || stringData.contains("response.completed")) {
                                 if (self?.messages.count ?? 0) >= 2 {
                                     // TODO: - Store message in our backend
-                                    /*self?.storaDataManager.fetchStoreData(response: StoreResult(
-                                        _id: "",
-                                        userId: AppData.shared.uniqueUserId,
-                                        prompt: self?.messages[(self?.messages.count ?? 0)-2].content ?? "",
-                                        result: self?.messages.last?.content ?? "",
-                                        totalTokens:  0,
-                                        date: Double(Date().timeIntervalSinceReferenceDate),
-                                        sharableResult: userDefaults.bool(forKey: UserDefaultsConstants.shouldShareResults.rawValue),
-                                        searchOnWeb: false,
-                                        likes: nil,
-                                        isSummary: false
-                                    ))*/
+                                    print("✅ Stream completed, message count: \(self?.messages.count ?? 0)")
                                 }
                             }
                         }
@@ -143,15 +138,14 @@ class ChatStreamService: ObservableObject, @unchecked Sendable {
     
     @MainActor
     private func handleStreamData(_ data: Data, with id: String) throws {
-        print("Handle stream data with Data \(String(data: data, encoding: .utf8))")
-        
         guard let jsonString = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) else {
             throw StreamError.apiError(description: "Invalid encoding")
         }
         
+        // Check for error conditions
         if jsonString.contains("context_length_exceeded") {
             throw StreamError.apiError(description: "Context length exceeded.")
-        } else if jsonString.contains("error\":") {
+        } else if jsonString.contains("\"error\":") {
             throw StreamError.apiError(description: jsonString)
         }
         
@@ -182,8 +176,14 @@ class ChatStreamService: ObservableObject, @unchecked Sendable {
     
     @MainActor
     private func processServerSentEvent(event: String, data: String, chatId: String) throws {
+        // Log all events for debugging
+        print("Processing SSE event: \(event)")
+        
         // Only process text delta events that contain actual content
-        guard event == "response.output_text.delta" else { return }
+        // Silently ignore other event types (response.created, response.in_progress, etc.)
+        guard event == "response.output_text.delta" else { 
+            return 
+        }
         
         guard let jsonData = data.data(using: .utf8) else {
             throw StreamError.apiError(description: "Failed to convert data to UTF8")
@@ -205,7 +205,7 @@ class ChatStreamService: ObservableObject, @unchecked Sendable {
                 self.messages.append(chunk)
             }
             
-            print("Message appended full \(self.messages)")
+            print("Message appended, current content length: \(self.messages.last?.content.count ?? 0)")
             self.processMessages()
             
         } catch {
@@ -216,26 +216,26 @@ class ChatStreamService: ObservableObject, @unchecked Sendable {
     @MainActor
     private func processMessages() {
         if let lastMessage = messages.last {
-            let content = lastMessage.content // Assuming lastMessage is the text content
+            let content = lastMessage.content
 
-            // Use NSRegularExpression to match sentence-ending punctuation followed by space or end of the string.
+            // Use NSRegularExpression to match sentence-ending punctuation
             let pattern = "[^.!?]*[.!?]+"
             let regex = try! NSRegularExpression(pattern: pattern, options: [])
             let nsrange = NSRange(content.startIndex..<content.endIndex, in: content)
             
-            // Find matches in the content and map them to Swift String.
+            // Find matches in the content and map them to Swift String
             let matches = regex.matches(in: content, options: [], range: nsrange)
             let sentences = matches.map { (match) -> String in
                 let range = Range(match.range, in: content)!
                 return String(content[range])
             }
             
-            // Filter out and append sentences that are not already in the accumulatedTextForSpeech.
+            // Filter out and append sentences that are not already accumulated
             for sentence in sentences {
                 let trimmedSentence = sentence.trimmingCharacters(in: .whitespacesAndNewlines)
                 if !accumulatedTextForSpeech.contains(trimmedSentence) {
                     accumulatedTextForSpeech.append(trimmedSentence)
-                    print("I got full sentence \(trimmedSentence)")
+                    print("📝 New sentence ready for speech: \(trimmedSentence.prefix(50))...")
                 }
             }
         }
