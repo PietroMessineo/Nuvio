@@ -4,10 +4,12 @@ struct CanvasOverlayMenu: View {
     let onPickDocument: () -> Void
     let onOpenNotes: () -> Void
     let onOpenBrowser: () -> Void
-    init(onPickDocument: @escaping () -> Void = {}, onOpenNotes: @escaping () -> Void = {}, onOpenBrowser: @escaping () -> Void = {}) {
+    let onOpenAi: () -> Void
+    init(onPickDocument: @escaping () -> Void = {}, onOpenNotes: @escaping () -> Void = {}, onOpenBrowser: @escaping () -> Void = {}, onOpenAi: @escaping () -> Void = {}) {
         self.onPickDocument = onPickDocument
         self.onOpenNotes = onOpenNotes
         self.onOpenBrowser = onOpenBrowser
+        self.onOpenAi = onOpenAi
     }
     
     var body: some View {
@@ -49,7 +51,7 @@ struct CanvasOverlayMenu: View {
             }
             
             Button {
-                // TODO: - Open AI Chat
+                onOpenAi()
             } label: {
                 CanvasItemView(
                     image: "brain",

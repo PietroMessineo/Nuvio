@@ -24,6 +24,7 @@ struct NuvioApp: App {
             }
             .environment(\.managedObjectContext, persistenceController.container.viewContext)
             .environmentObject(userManager)
+            .environmentObject(chatStreamService)
             .task {
                 await createUser()
             }

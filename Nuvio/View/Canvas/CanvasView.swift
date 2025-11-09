@@ -8,7 +8,7 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-enum CanvasContentType { case empty, pdf, notes, browser }
+enum CanvasContentType { case empty, pdf, notes, browser, ai }
 
 struct CanvasPane: View {
     let canvasIndex: Int
@@ -26,6 +26,7 @@ struct CanvasPane: View {
     var onOpenNotes: () -> Void
     var onOpenBrowser: () -> Void
     var onSwitchCanvas: (Int) -> Void
+    var onOpenAi: () -> Void
 
     var body: some View {
         ZStack {
@@ -34,7 +35,8 @@ struct CanvasPane: View {
                 CanvasOverlayMenu(
                     onPickDocument: onPickDocument,
                     onOpenNotes: onOpenNotes,
-                    onOpenBrowser: onOpenBrowser
+                    onOpenBrowser: onOpenBrowser,
+                    onOpenAi: onOpenAi
                 )
             case .pdf:
                 if let url = selectedPDF {
@@ -52,6 +54,8 @@ struct CanvasPane: View {
                     goBackTrigger: $goBackTrigger,
                     goForwardTrigger: $goForwardTrigger
                 )
+            case .ai:
+                CanvasAiView()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -97,6 +101,46 @@ struct CanvasNotesView: View {
             .scrollContentBackground(.hidden)
             .background(Color(hex: "F1F1F1"))
             .clipShape(RoundedRectangle(cornerRadius: 48))
+    }
+}
+
+struct CanvasAiView: View {
+    @EnvironmentObject var chatStreamService: ChatStreamService
+    
+    @State var promptText: String = ""
+    
+    var body: some View {
+        VStack(alignment: .leading) {
+            List(chatStreamService.messages) { messages in
+                Text(messages.content)
+            }
+            .scrollContentBackground(.hidden)
+            
+            HStack(alignment: .bottom) {
+                TextField(text: $promptText, axis: .vertical) {
+                    Text("Ask anything")
+                }
+                
+                Button {
+                    // TODO: - Send chat
+                } label: {
+                    Image(systemName: "arrow.up")
+                        .fontWeight(.bold)
+                        .foregroundStyle(.white)
+                }
+                .padding(.vertical, 5)
+                .padding(.horizontal, 16)
+                .background(Color.blue)
+                .clipShape(Capsule())
+            }
+            .padding(.leading, 21)
+            .padding(.trailing, 7)
+            .padding(.vertical, 7)
+            .background(Color.init(uiColor: .systemGray4))
+            .clipShape(RoundedRectangle(cornerRadius: 22))
+        }
+        .padding(20)
+        .background(Color(hex: "F1F1F1"))
     }
 }
 
@@ -232,6 +276,15 @@ struct CanvasPreviewCard: View {
                                         .lineLimit(2)
                                         .multilineTextAlignment(.center)
                                 }
+                            }
+                        case .ai:
+                            VStack {
+                                Image(systemName: "brain")
+                                    .font(.title2)
+                                    .foregroundStyle(Color(hex: "#A080FB"))
+                                Text("AI")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
                             }
                         }
                     }
@@ -428,6 +481,9 @@ struct CanvasView: View {
                         onSwitchCanvas: { canvasIndex in
                             switchingFromCanvasIndex = canvasIndex
                             showingCanvasSwitcher = true
+                        },
+                        onOpenAi: {
+                            contentType0 = .ai
                         }
                     )
                     
@@ -452,6 +508,9 @@ struct CanvasView: View {
                             onSwitchCanvas: { canvasIndex in
                                 switchingFromCanvasIndex = canvasIndex
                                 showingCanvasSwitcher = true
+                            },
+                            onOpenAi: {
+                                contentType1 = .ai
                             }
                         )
                         
@@ -476,6 +535,9 @@ struct CanvasView: View {
                                 onSwitchCanvas: { canvasIndex in
                                     switchingFromCanvasIndex = canvasIndex
                                     showingCanvasSwitcher = true
+                                },
+                                onOpenAi: {
+                                    contentType2 = .ai
                                 }
                             )
                         }
@@ -567,5 +629,6 @@ struct CanvasView: View {
 #Preview {
     NavigationStack {
         CanvasView()
+            .environmentObject(ChatStreamService())
     }
 }
