@@ -19,6 +19,8 @@ struct HomeView: View {
     @State private var createNewCanvas: Bool = false
     @State private var selectedCanvas: Canvas? = nil
     
+    @Namespace var transition
+    
     var body: some View {
         GeometryReader { geometry in
             let width = geometry.size.width
@@ -52,6 +54,7 @@ struct HomeView: View {
                                 .foregroundStyle(.primary)
                         }
                         .frame(width: 181)
+                        .matchedTransitionSource(id: "overFullScreenNew", in: transition)
                     }
                     .buttonStyle(PlainButtonStyle())
                     
@@ -72,6 +75,7 @@ struct HomeView: View {
                                 deleteCanvas(canvas)
                             }
                         }
+                        .matchedTransitionSource(id: "overFullScreen", in: transition)
                     }
                 }
                 .padding()
@@ -131,11 +135,13 @@ struct HomeView: View {
             NavigationStack {
                 CanvasView(canvas: selectedCanvas, context: viewContext)
             }
+            .navigationTransition(.zoom(sourceID: "overFullScreen", in: transition))
         })
         .fullScreenCover(isPresented: $createNewCanvas, content: {
             NavigationStack {
                 CanvasView(canvas: nil, context: viewContext)
             }
+            .navigationTransition(.zoom(sourceID: "overFullScreenNew", in: transition))
         })
     }
     
@@ -259,9 +265,45 @@ struct CanvasGridCard: View {
     }
 }
 
-#Preview {
-    NavigationStack {
-        HomeView()
+#Preview("HomeView Preview") {
+    struct PreviewContainer: View {
+        let container: NSPersistentContainer
+        init() {
+            // Build an in-memory container using the app's model name
+            let container = NSPersistentContainer(name: "Nuvio")
+            let description = NSPersistentStoreDescription()
+            description.type = NSInMemoryStoreType
+            description.shouldAddStoreAsynchronously = false
+            container.persistentStoreDescriptions = [description]
+
+            container.loadPersistentStores { _, error in
+                if let error = error {
+                    fatalError("Preview store load failed: \(error)")
+                }
+            }
+
+            // Seed a few Canvas items so the fetch request has entities
+            let context = container.viewContext
+            for i in 0..<3 {
+                let canvas = Canvas(context: context)
+                canvas.title = "Canvas \(i + 1)"
+                canvas.modifiedDate = Date().addingTimeInterval(Double(-i) * 3600)
+                canvas.currentCanvasLayout = Int16(i % 3)
+                // Seed primary content type fields referenced by the grid card
+                canvas.canvas0ContentType = ["empty", "pdf", "notes", "browser", "ai"][i % 5]
+            }
+            do { try context.save() } catch { assertionFailure("Failed to seed preview data: \(error)") }
+
+            self.container = container
+        }
+
+        var body: some View {
+            NavigationStack {
+                HomeView()
+            }
+            .environment(\.managedObjectContext, container.viewContext)
+        }
     }
-    .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
+
+    return PreviewContainer()
 }
