@@ -9,9 +9,74 @@ import SwiftUI
 import CoreData
 
 struct HomeView: View {
+    @Environment(\.managedObjectContext) private var viewContext
+    
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \Canvas.modifiedDate, ascending: false)],
+        animation: .default)
+    private var canvases: FetchedResults<Canvas>
+    
+    @State private var showingCanvasView = false
+    @State private var selectedCanvas: Canvas? = nil
+    
     var body: some View {
-        VStack {
-            // TODO: - Sections for subjects grid layout 181 x 127 and 22 of radius
+        ScrollView {
+            LazyVGrid(columns: [
+                GridItem(.flexible(), spacing: 16),
+                GridItem(.flexible(), spacing: 16)
+            ], spacing: 16) {
+                
+                // New Canvas Card
+                Button {
+                    selectedCanvas = nil
+                    showingCanvasView = true
+                } label: {
+                    VStack(spacing: 12) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 22)
+                                .fill(Color(hex: "F1F1F1"))
+                                .frame(height: 127)
+                            
+                            VStack(spacing: 8) {
+                                Image(systemName: "plus")
+                                    .font(.title)
+                                    .foregroundStyle(.blue)
+                                Text("New Canvas")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        
+                        Text("Create New")
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                    }
+                    .frame(width: 181)
+                }
+                .buttonStyle(PlainButtonStyle())
+                
+                // Existing Canvas Cards
+                ForEach(canvases) { canvas in
+                    Button {
+                        selectedCanvas = canvas
+                        showingCanvasView = true
+                    } label: {
+                        CanvasGridCard(canvas: canvas)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .contextMenu {
+                        Button("Edit") {
+                            selectedCanvas = canvas
+                            showingCanvasView = true
+                        }
+                        
+                        Button("Delete", role: .destructive) {
+                            deleteCanvas(canvas)
+                        }
+                    }
+                }
+            }
+            .padding()
         }
         .toolbar(content: {
             ToolbarItem(placement: .topBarLeading) {
@@ -53,7 +118,8 @@ struct HomeView: View {
             
             ToolbarItem(placement: .primaryAction) {
                 Button {
-                    // TODO: - Open New Canvas
+                    selectedCanvas = nil
+                    showingCanvasView = true
                 } label: {
                     Image(systemName: "plus")
                         .padding(12)
@@ -63,6 +129,123 @@ struct HomeView: View {
             .sharedBackgroundVisibility(.hidden)
         })
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .fullScreenCover(isPresented: $showingCanvasView) {
+            NavigationStack {
+                CanvasView(canvas: selectedCanvas, context: viewContext)
+            }
+        }
+    }
+    
+    private func deleteCanvas(_ canvas: Canvas) {
+        withAnimation {
+            viewContext.delete(canvas)
+            
+            do {
+                try viewContext.save()
+            } catch {
+                print("Error deleting canvas: \(error)")
+            }
+        }
+    }
+}
+
+struct CanvasGridCard: View {
+    let canvas: Canvas
+    
+    var body: some View {
+        VStack(spacing: 12) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 22)
+                    .fill(Color(hex: "F1F1F1"))
+                    .frame(height: 127)
+                
+                VStack(spacing: 8) {
+                    // Display icon based on primary canvas content
+                    Image(systemName: primaryContentIcon)
+                        .font(.title2)
+                        .foregroundStyle(primaryContentColor)
+                    
+                    Text(primaryContentDescription)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    
+                    // Layout indicator
+                    HStack(spacing: 2) {
+                        ForEach(0...2, id: \.self) { index in
+                            Circle()
+                                .fill(index <= Int(canvas.currentCanvasLayout) ? .blue : .gray.opacity(0.3))
+                                .frame(width: 4, height: 4)
+                        }
+                    }
+                }
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(canvas.title ?? "Untitled")
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                
+                if let date = canvas.modifiedDate {
+                    Text(date, style: .relative)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(width: 181)
+    }
+    
+    private var primaryContentIcon: String {
+        // Determine primary content based on the current layout
+        let currentLayout = Int(canvas.currentCanvasLayout)
+        
+        if currentLayout >= 0 {
+            if let contentType = CanvasContentType(rawValue: canvas.canvas0ContentType ?? "") {
+                return iconForContentType(contentType)
+            }
+        }
+        
+        return "rectangle"
+    }
+    
+    private var primaryContentColor: Color {
+        let currentLayout = Int(canvas.currentCanvasLayout)
+        
+        if currentLayout >= 0 {
+            if let contentType = CanvasContentType(rawValue: canvas.canvas0ContentType ?? "") {
+                return colorForContentType(contentType)
+            }
+        }
+        
+        return .gray
+    }
+    
+    private var primaryContentDescription: String {
+        let currentLayout = Int(canvas.currentCanvasLayout)
+        let layoutNames = ["Single", "Dual", "Triple"]
+        return layoutNames[min(currentLayout, 2)]
+    }
+    
+    private func iconForContentType(_ type: CanvasContentType) -> String {
+        switch type {
+        case .empty: return "rectangle"
+        case .pdf: return "document"
+        case .notes: return "pencil.and.scribble"
+        case .browser: return "globe"
+        case .ai: return "brain"
+        }
+    }
+    
+    private func colorForContentType(_ type: CanvasContentType) -> Color {
+        switch type {
+        case .empty: return .gray
+        case .pdf: return Color(hex: "80C5FB")
+        case .notes: return Color(hex: "FBD680")
+        case .browser: return Color(hex: "A8D2D1")
+        case .ai: return Color(hex: "A080FB")
+        }
     }
 }
 

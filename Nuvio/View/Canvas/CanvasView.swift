@@ -7,8 +7,34 @@
 
 import SwiftUI
 import UniformTypeIdentifiers
+import Combine
+import CoreData
 
 enum CanvasContentType { case empty, pdf, notes, browser, ai }
+
+// Extend CanvasContentType to be compatible with CoreData
+extension CanvasContentType: CaseIterable, RawRepresentable {
+    public var rawValue: String {
+        switch self {
+        case .empty: return "empty"
+        case .pdf: return "pdf"
+        case .notes: return "notes"
+        case .browser: return "browser"
+        case .ai: return "ai"
+        }
+    }
+    
+    public init?(rawValue: String) {
+        switch rawValue {
+        case "empty": self = .empty
+        case "pdf": self = .pdf
+        case "notes": self = .notes
+        case "browser": self = .browser
+        case "ai": self = .ai
+        default: return nil
+        }
+    }
+}
 
 struct CanvasPane: View {
     let canvasIndex: Int
@@ -365,12 +391,20 @@ struct CanvasData {
 }
 
 struct CanvasView: View {
+    @Environment(\.managedObjectContext) private var viewContext
+    @Environment(\.dismiss) private var dismiss
+    
+    let canvas: Canvas?
+    
+    @StateObject private var canvasDataManager: CanvasDataManager
+    @State private var canvasTitle: String = ""
     @State var currentCanvas: Int = 0
     @State private var selectedPDF0: URL?
     @State private var selectedPDF1: URL?
     @State private var selectedPDF2: URL?
     @State private var showingImporter = false
     @State private var importingCanvasIndex: Int? = nil
+    @State private var showingSaveDialog = false
     
     // Canvas switcher state
     @State private var showingCanvasSwitcher = false
@@ -405,6 +439,85 @@ struct CanvasView: View {
     @State private var messageContent0: [AiMessageChunk] = []
     @State private var messageContent1: [AiMessageChunk] = []
     @State private var messageContent2: [AiMessageChunk] = []
+    
+    // MARK: - Initializers
+    
+    init(canvas: Canvas? = nil, context: NSManagedObjectContext) {
+        self.canvas = canvas
+        self._canvasDataManager = StateObject(wrappedValue: CanvasDataManager(context: context))
+    }
+    
+    // MARK: - Save Methods
+    
+    private func saveCanvas() {
+        let targetCanvas = canvas ?? canvasDataManager.createNewCanvas()
+        
+        let canvasData = SavedCanvasData(
+            title: canvasTitle.isEmpty ? "Untitled Canvas" : canvasTitle,
+            currentCanvas: currentCanvas,
+            canvas0Data: SavedCanvasData.CanvasData(
+                contentType: contentType0,
+                notes: notes0,
+                browserAddress: browserAddress0,
+                pdfBookmark: selectedPDF0.flatMap { canvasDataManager.createPDFBookmark(from: $0) },
+                messageContent: messageContent0
+            ),
+            canvas1Data: SavedCanvasData.CanvasData(
+                contentType: contentType1,
+                notes: notes1,
+                browserAddress: browserAddress1,
+                pdfBookmark: selectedPDF1.flatMap { canvasDataManager.createPDFBookmark(from: $0) },
+                messageContent: messageContent1
+            ),
+            canvas2Data: SavedCanvasData.CanvasData(
+                contentType: contentType2,
+                notes: notes2,
+                browserAddress: browserAddress2,
+                pdfBookmark: selectedPDF2.flatMap { canvasDataManager.createPDFBookmark(from: $0) },
+                messageContent: messageContent2
+            )
+        )
+        
+        canvasDataManager.saveCanvasData(canvas: targetCanvas, canvasData: canvasData)
+    }
+    
+    private func loadCanvasData() {
+        guard let canvas = canvas else { 
+            canvasTitle = "New Canvas"
+            return 
+        }
+        let canvasData = canvasDataManager.loadCanvasData(from: canvas)
+        
+        canvasTitle = canvasData.title
+        currentCanvas = canvasData.currentCanvas
+        
+        // Load Canvas 0 data
+        contentType0 = canvasData.canvas0Data.contentType
+        notes0 = canvasData.canvas0Data.notes
+        browserAddress0 = canvasData.canvas0Data.browserAddress
+        messageContent0 = canvasData.canvas0Data.messageContent
+        if let bookmarkData = canvasData.canvas0Data.pdfBookmark {
+            selectedPDF0 = canvasDataManager.resolvePDFBookmark(bookmarkData)
+        }
+        
+        // Load Canvas 1 data
+        contentType1 = canvasData.canvas1Data.contentType
+        notes1 = canvasData.canvas1Data.notes
+        browserAddress1 = canvasData.canvas1Data.browserAddress
+        messageContent1 = canvasData.canvas1Data.messageContent
+        if let bookmarkData = canvasData.canvas1Data.pdfBookmark {
+            selectedPDF1 = canvasDataManager.resolvePDFBookmark(bookmarkData)
+        }
+        
+        // Load Canvas 2 data
+        contentType2 = canvasData.canvas2Data.contentType
+        notes2 = canvasData.canvas2Data.notes
+        browserAddress2 = canvasData.canvas2Data.browserAddress
+        messageContent2 = canvasData.canvas2Data.messageContent
+        if let bookmarkData = canvasData.canvas2Data.pdfBookmark {
+            selectedPDF2 = canvasDataManager.resolvePDFBookmark(bookmarkData)
+        }
+    }
     
     // Helper methods for canvas switching
     private func switchCanvases(from sourceIndex: Int, to targetIndex: Int) {
@@ -636,7 +749,29 @@ struct CanvasView: View {
             })
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onAppear {
+            loadCanvasData()
+        }
         .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button("Back") {
+                    saveCanvas()
+                    dismiss()
+                }
+            }
+            
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Menu {
+                    Button("Save", action: saveCanvas)
+                    Button("Save & Close") {
+                        saveCanvas()
+                        dismiss()
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+            }
+            
             ToolbarItem(placement: .principal) {
                 HStack {
                     Button {
@@ -675,6 +810,6 @@ struct CanvasView: View {
 
 #Preview {
     NavigationStack {
-        CanvasView()
+        CanvasView(context: PersistenceController.preview.container.viewContext)
     }
 }

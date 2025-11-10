@@ -8,10 +8,12 @@
 
 /* Begin PBXBuildFile section */
 		CB091A862EBCF81C001C9F4F /* Piadina in Frameworks */ = {isa = PBXBuildFile; productRef = CB091A852EBCF81C001C9F4F /* Piadina */; };
+		CB6587FA2EC1D00C005B68A6 /* Canvas+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB6587F92EC1D00C005B68A6 /* Canvas+CoreDataClass.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		CB091A6E2EBCF548001C9F4F /* Nuvio.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Nuvio.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CB6587F92EC1D00C005B68A6 /* Canvas+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Canvas+CoreDataClass.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -52,6 +54,7 @@
 			children = (
 				CB091A702EBCF548001C9F4F /* Nuvio */,
 				CB091A6F2EBCF548001C9F4F /* Products */,
+				CB6587F92EC1D00C005B68A6 /* Canvas+CoreDataClass.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -141,6 +144,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CB6587FA2EC1D00C005B68A6 /* Canvas+CoreDataClass.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24299" systemVersion="25A354" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithCloudKit="YES" userDefinedModelVersionIdentifier="">
+    <entity name="Canvas" representedClassName="Canvas" syncable="YES">
+        <attribute name="canvas0AIMessages" optional="YES" attributeType="Binary"/>
+        <attribute name="canvas0BrowserAddress" optional="YES" attributeType="String"/>
+        <attribute name="canvas0ContentType" optional="YES" attributeType="String"/>
+        <attribute name="canvas0Notes" optional="YES" attributeType="String"/>
+        <attribute name="canvas0PDFBookmark" optional="YES" attributeType="Binary"/>
+        <attribute name="canvas1AIMessages" optional="YES" attributeType="Binary"/>
+        <attribute name="canvas1BrowserAddress" optional="YES" attributeType="String"/>
+        <attribute name="canvas1ContentType" optional="YES" attributeType="String"/>
+        <attribute name="canvas1Notes" optional="YES" attributeType="String"/>
+        <attribute name="canvas1PDFBookmark" optional="YES" attributeType="Binary"/>
+        <attribute name="canvas2AIMessages" optional="YES" attributeType="Binary"/>
+        <attribute name="canvas2BrowserAddress" optional="YES" attributeType="String"/>
+        <attribute name="canvas2ContentType" optional="YES" attributeType="String"/>
+        <attribute name="canvas2Notes" optional="YES" attributeType="String"/>
+        <attribute name="canvas2PDFBookmark" optional="YES" attributeType="Binary"/>
+        <attribute name="createdDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="currentCanvasLayout" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="modifiedDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="thumbnailData" optional="YES" attributeType="Binary"/>
+        <attribute name="title" optional="YES" attributeType="String"/>
+    </entity>
+    <entity name="Item" representedClassName="Item" syncable="YES" codeGenerationType="class">
+        <attribute name="timestamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+    </entity>
+</model>
