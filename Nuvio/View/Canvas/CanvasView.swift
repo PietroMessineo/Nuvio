@@ -460,6 +460,8 @@ struct CanvasView: View {
     @State private var messageContent1: [AiMessageChunk] = []
     @State private var messageContent2: [AiMessageChunk] = []
     
+    @Namespace var transition
+    
     // MARK: - Initializers
     
     init(canvas: Canvas? = nil, context: NSManagedObjectContext) {
@@ -716,6 +718,7 @@ struct CanvasView: View {
                             contentType0 = .ai
                         }
                     )
+                    .matchedTransitionSource(id: "sheet", in: transition)
                     
                     if currentCanvas == 1 || currentCanvas == 2 {
                         CanvasPane(
@@ -744,6 +747,7 @@ struct CanvasView: View {
                                 contentType1 = .ai
                             }
                         )
+                        .matchedTransitionSource(id: "sheet", in: transition)
                         
                         if currentCanvas == 2 {
                             CanvasPane(
@@ -772,6 +776,7 @@ struct CanvasView: View {
                                     contentType2 = .ai
                                 }
                             )
+                            .matchedTransitionSource(id: "sheet", in: transition)
                         }
                     }
                 }
@@ -827,6 +832,7 @@ struct CanvasView: View {
                         switchCanvases(from: sourceIndex, to: targetIndex)
                     }
                 )
+                .navigationTransition(.zoom(sourceID: "sheet", in: transition))
             })
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
