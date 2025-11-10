@@ -15,7 +15,9 @@ struct CanvasBrowserView: View {
     @Binding var goBackTrigger: Bool
     @Binding var goForwardTrigger: Bool
     
+    var isPreview: Bool = false
+    
     var body: some View {
-        ModernWebBrowserView(urlText: $browserAddress)
+        ModernWebBrowserView(urlText: $browserAddress, isPreview: isPreview)
     }
 }

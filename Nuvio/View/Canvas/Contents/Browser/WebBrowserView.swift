@@ -66,6 +66,8 @@ struct ModernWebBrowserView: View {
     @StateObject private var coordinator = WebBrowserCoordinator()
     @Binding var urlText: String
     
+    var isPreview: Bool = false
+    
     var body: some View {
         VStack(spacing: 0) {
             // WebView
@@ -77,7 +79,9 @@ struct ModernWebBrowserView: View {
                 }
             
             // Navigation Bar
-            navigationBar
+            if !isPreview {
+                navigationBar
+            }
             
             // Progress Bar
             if coordinator.isLoading {

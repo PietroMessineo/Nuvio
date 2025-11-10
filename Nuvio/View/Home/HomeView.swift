@@ -166,6 +166,7 @@ struct HomeView: View {
 }
 
 struct CanvasGridCard: View {
+    @StateObject private var canvasDataManager: CanvasDataManager = CanvasDataManager(context: PersistenceController.shared.container.viewContext)
     let canvas: Canvas
     
     var body: some View {
@@ -176,24 +177,112 @@ struct CanvasGridCard: View {
                     .frame(height: 127)
                 
                 VStack(spacing: 8) {
-                    // Display icon based on primary canvas content
-                    Image(systemName: primaryContentIcon)
-                        .font(.title2)
-                        .foregroundStyle(primaryContentColor)
-                    
-                    Text(primaryContentDescription)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    
                     // Layout indicator
-                    HStack(spacing: 2) {
-                        ForEach(0...2, id: \.self) { index in
-                            Circle()
-                                .fill(index <= Int(canvas.currentCanvasLayout) ? .blue : .gray.opacity(0.3))
-                                .frame(width: 4, height: 4)
+                    HStack(spacing: 8) {
+                        ForEach(0...canvas.currentCanvasLayout, id: \.self) { index in
+                            VStack {
+                                if index == 0 {
+                                    switch canvas.canvas0ContentType {
+                                    case "pdf":
+                                        if let pdfData = canvas.canvas0PDFData, let pdfName = canvas.canvas0PDFFileName, let url = canvasDataManager.createTemporaryURL(for: pdfData, fileName: pdfName) {
+                                            PDFKitView(url: url)
+                                        }
+                                    case "notes":
+                                        CanvasNotesView(
+                                            notes: .constant(canvas.canvas0Notes ?? ""),
+                                            isPreview: true
+                                        )
+                                    case "browser":
+                                        CanvasBrowserView(
+                                            browserAddress: .constant(canvas.canvas0BrowserAddress ?? ""),
+                                            browserNavigate: .constant(true),
+                                            canGoBack: .constant(false),
+                                            canGoForward: .constant(false),
+                                            goBackTrigger: .constant(false),
+                                            goForwardTrigger: .constant(false),
+                                            isPreview: true
+                                        )
+                                    case "ai":
+                                        CanvasAiView(
+                                            messageContent: .constant(decodeAIMessages(canvas.canvas0AIMessages)),
+                                            isPreview: true
+                                        )
+                                    default:
+                                        Text("")
+                                    }
+                                } else if index == 1 {
+                                    switch canvas.canvas1ContentType {
+                                    case "pdf":
+                                        if let pdfData = canvas.canvas1PDFData, let pdfName = canvas.canvas1PDFFileName, let url = canvasDataManager.createTemporaryURL(for: pdfData, fileName: pdfName) {
+                                            PDFKitView(url: url)
+                                        }
+                                    case "notes":
+                                        CanvasNotesView(
+                                            notes: .constant(canvas.canvas1Notes ?? ""),
+                                            isPreview: true
+                                        )
+                                    case "browser":
+                                        CanvasBrowserView(
+                                            browserAddress: .constant(canvas.canvas1BrowserAddress ?? ""),
+                                            browserNavigate: .constant(true),
+                                            canGoBack: .constant(false),
+                                            canGoForward: .constant(false),
+                                            goBackTrigger: .constant(false),
+                                            goForwardTrigger: .constant(false),
+                                            isPreview: true
+                                        )
+                                    case "ai":
+                                        CanvasAiView(
+                                            messageContent: .constant(decodeAIMessages(canvas.canvas1AIMessages)),
+                                            isPreview: true
+                                        )
+                                    default:
+                                        Text("")
+                                    }
+                                } else if index == 2 {
+                                    switch canvas.canvas2ContentType {
+                                    case "pdf":
+                                        if let pdfData = canvas.canvas2PDFData, let pdfName = canvas.canvas2PDFFileName, let url = canvasDataManager.createTemporaryURL(for: pdfData, fileName: pdfName) {
+                                            PDFKitView(url: url)
+                                        }
+                                    case "notes":
+                                        CanvasNotesView(
+                                            notes: .constant(canvas.canvas2Notes ?? ""),
+                                            isPreview: true
+                                        )
+                                    case "browser":
+                                        CanvasBrowserView(
+                                            browserAddress: .constant(canvas.canvas2BrowserAddress ?? ""),
+                                            browserNavigate: .constant(true),
+                                            canGoBack: .constant(false),
+                                            canGoForward: .constant(false),
+                                            goBackTrigger: .constant(false),
+                                            goForwardTrigger: .constant(false),
+                                            isPreview: true
+                                        )
+                                    case "ai":
+                                        CanvasAiView(
+                                            messageContent: .constant(decodeAIMessages(canvas.canvas2AIMessages)),
+                                            isPreview: true
+                                        )
+                                    default:
+                                        Text("")
+                                    }
+                                }
+                            }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .background(Color.init(uiColor: .systemGray5))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .inset(by: 0.5)
+                                    .stroke(.white.opacity(0.5), lineWidth: 1)
+                            )
+                            .cornerRadius(10)
                         }
                     }
                 }
+                .frame(height: 127)
+                .allowsHitTesting(false)
             }
             
             VStack(alignment: .leading, spacing: 4) {
@@ -211,6 +300,16 @@ struct CanvasGridCard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(width: 181)
+    }
+    
+    private func decodeAIMessages(_ data: Data?) -> [AiMessageChunk] {
+        guard let data = data else { return [] }
+        do {
+            return try JSONDecoder().decode([AiMessageChunk].self, from: data)
+        } catch {
+            print("Error decoding AI messages: \(error)")
+            return []
+        }
     }
     
     private var primaryContentIcon: String {

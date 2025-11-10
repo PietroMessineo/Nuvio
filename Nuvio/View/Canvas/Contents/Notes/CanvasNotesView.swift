@@ -9,13 +9,14 @@ import SwiftUI
 
 struct CanvasNotesView: View {
     @Binding var notes: String
+    var isPreview = false
     
     var body: some View {
         TextEditor(text: $notes)
-            .font(.system(size: 20))
-            .padding(24)
+            .font(.system(size: isPreview ? 7 : 20))
+            .padding(isPreview ? 8 : 24)
             .scrollContentBackground(.hidden)
             .background(Color(hex: "F1F1F1"))
-            .clipShape(RoundedRectangle(cornerRadius: 48))
+            .clipShape(RoundedRectangle(cornerRadius: isPreview ? 10 : 48))
     }
 }
