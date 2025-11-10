@@ -13,8 +13,21 @@ struct PDFKitView: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: PDFView, context: Context) {
-        uiView.document = PDFDocument(url: url)
+        // Don't start/stop access here since it's managed by CanvasDataManager
+        // Just attempt to load the document
+        guard let pdfDocument = PDFDocument(url: url) else {
+            print("Failed to load PDF document from URL: \(url.path)")
+            // Create an empty document or show error state
+            uiView.document = nil
+            return
+        }
+        
+        uiView.document = pdfDocument
     }
+}
+
+#Preview {
+    Text("PDFKitView Preview")
 }
 
 #Preview {

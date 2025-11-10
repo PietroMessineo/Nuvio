@@ -73,21 +73,24 @@ class CanvasDataManager: ObservableObject {
         canvas.canvas0ContentType = canvasData.canvas0Data.contentType.rawValue
         canvas.canvas0Notes = canvasData.canvas0Data.notes
         canvas.canvas0BrowserAddress = canvasData.canvas0Data.browserAddress
-        canvas.canvas0PDFBookmark = canvasData.canvas0Data.pdfBookmark
+        canvas.canvas0PDFData = canvasData.canvas0Data.pdfData
+        canvas.canvas0PDFFileName = canvasData.canvas0Data.pdfFileName
         canvas.canvas0AIMessages = encodeAIMessages(canvasData.canvas0Data.messageContent)
         
         // Save Canvas 1 data
         canvas.canvas1ContentType = canvasData.canvas1Data.contentType.rawValue
         canvas.canvas1Notes = canvasData.canvas1Data.notes
         canvas.canvas1BrowserAddress = canvasData.canvas1Data.browserAddress
-        canvas.canvas1PDFBookmark = canvasData.canvas1Data.pdfBookmark
+        canvas.canvas1PDFData = canvasData.canvas1Data.pdfData
+        canvas.canvas1PDFFileName = canvasData.canvas1Data.pdfFileName
         canvas.canvas1AIMessages = encodeAIMessages(canvasData.canvas1Data.messageContent)
         
         // Save Canvas 2 data
         canvas.canvas2ContentType = canvasData.canvas2Data.contentType.rawValue
         canvas.canvas2Notes = canvasData.canvas2Data.notes
         canvas.canvas2BrowserAddress = canvasData.canvas2Data.browserAddress
-        canvas.canvas2PDFBookmark = canvasData.canvas2Data.pdfBookmark
+        canvas.canvas2PDFData = canvasData.canvas2Data.pdfData
+        canvas.canvas2PDFFileName = canvasData.canvas2Data.pdfFileName
         canvas.canvas2AIMessages = encodeAIMessages(canvasData.canvas2Data.messageContent)
         
         saveContext()
@@ -98,7 +101,8 @@ class CanvasDataManager: ObservableObject {
             contentType: CanvasContentType(rawValue: canvas.canvas0ContentType ?? "") ?? .empty,
             notes: canvas.canvas0Notes ?? "",
             browserAddress: canvas.canvas0BrowserAddress ?? "",
-            pdfBookmark: canvas.canvas0PDFBookmark,
+            pdfData: canvas.canvas0PDFData,
+            pdfFileName: canvas.canvas0PDFFileName,
             messageContent: decodeAIMessages(canvas.canvas0AIMessages)
         )
         
@@ -106,7 +110,8 @@ class CanvasDataManager: ObservableObject {
             contentType: CanvasContentType(rawValue: canvas.canvas1ContentType ?? "") ?? .empty,
             notes: canvas.canvas1Notes ?? "",
             browserAddress: canvas.canvas1BrowserAddress ?? "",
-            pdfBookmark: canvas.canvas1PDFBookmark,
+            pdfData: canvas.canvas1PDFData,
+            pdfFileName: canvas.canvas1PDFFileName,
             messageContent: decodeAIMessages(canvas.canvas1AIMessages)
         )
         
@@ -114,7 +119,8 @@ class CanvasDataManager: ObservableObject {
             contentType: CanvasContentType(rawValue: canvas.canvas2ContentType ?? "") ?? .empty,
             notes: canvas.canvas2Notes ?? "",
             browserAddress: canvas.canvas2BrowserAddress ?? "",
-            pdfBookmark: canvas.canvas2PDFBookmark,
+            pdfData: canvas.canvas2PDFData,
+            pdfFileName: canvas.canvas2PDFFileName,
             messageContent: decodeAIMessages(canvas.canvas2AIMessages)
         )
         
@@ -194,29 +200,59 @@ class CanvasDataManager: ObservableObject {
         }
     }
     
-    // MARK: - PDF Bookmark Handling
+    // MARK: - PDF Data Handling
     
-    func createPDFBookmark(from url: URL) -> Data? {
+    /// Loads PDF data from a file URL and returns the data along with filename
+    func loadPDFData(from url: URL) -> (data: Data?, fileName: String) {
+        let fileName = url.lastPathComponent
+        
+        // Start accessing security-scoped resource
+        let startedAccessing = url.startAccessingSecurityScopedResource()
+        defer {
+            if startedAccessing {
+                url.stopAccessingSecurityScopedResource()
+            }
+        }
+        
         do {
-            return try url.bookmarkData(options: .withoutImplicitSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
+            let pdfData = try Data(contentsOf: url)
+            print("Successfully loaded PDF data: \(fileName), size: \(pdfData.count) bytes")
+            return (pdfData, fileName)
         } catch {
-            print("Error creating PDF bookmark: \(error)")
+            print("Error loading PDF data from \(url): \(error)")
+            return (nil, fileName)
+        }
+    }
+    
+    /// Creates a temporary URL for PDF data so it can be displayed in PDFKit
+    func createTemporaryURL(for pdfData: Data, fileName: String) -> URL? {
+        let tempDirectory = FileManager.default.temporaryDirectory
+        let tempURL = tempDirectory.appendingPathComponent(fileName)
+        
+        do {
+            try pdfData.write(to: tempURL)
+            print("Created temporary PDF file: \(tempURL.path)")
+            return tempURL
+        } catch {
+            print("Error creating temporary PDF file: \(error)")
             return nil
         }
     }
     
-    func resolvePDFBookmark(_ bookmarkData: Data) -> URL? {
+    /// Cleans up temporary PDF files
+    func cleanupTemporaryPDFs() {
+        let tempDirectory = FileManager.default.temporaryDirectory
         do {
-            var isStale = false
-            let url = try URL(resolvingBookmarkData: bookmarkData, options: .withoutImplicitStartAccessing, relativeTo: nil, bookmarkDataIsStale: &isStale)
+            let tempFiles = try FileManager.default.contentsOfDirectory(at: tempDirectory, includingPropertiesForKeys: nil)
+            let pdfFiles = tempFiles.filter { $0.pathExtension.lowercased() == "pdf" }
             
-            if !isStale {
-                return url
+            for pdfFile in pdfFiles {
+                try FileManager.default.removeItem(at: pdfFile)
+                print("Removed temporary PDF: \(pdfFile.path)")
             }
         } catch {
-            print("Error resolving PDF bookmark: \(error)")
+            print("Error cleaning up temporary PDFs: \(error)")
         }
-        return nil
     }
 }
 
@@ -233,7 +269,8 @@ struct SavedCanvasData {
         let contentType: CanvasContentType
         let notes: String
         let browserAddress: String
-        let pdfBookmark: Data?
+        let pdfData: Data?
+        let pdfFileName: String?
         let messageContent: [AiMessageChunk]
     }
 }

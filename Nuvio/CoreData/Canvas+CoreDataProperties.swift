@@ -25,21 +25,24 @@ extension Canvas {
     @NSManaged public var canvas0ContentType: String?
     @NSManaged public var canvas0Notes: String?
     @NSManaged public var canvas0BrowserAddress: String?
-    @NSManaged public var canvas0PDFBookmark: Data? // For storing PDF URL bookmark
+    @NSManaged public var canvas0PDFData: Data? // For storing actual PDF document data
+    @NSManaged public var canvas0PDFFileName: String? // Original filename for reference
     @NSManaged public var canvas0AIMessages: Data? // JSON encoded AiMessageChunk array
     
     // Canvas 1 properties
     @NSManaged public var canvas1ContentType: String?
     @NSManaged public var canvas1Notes: String?
     @NSManaged public var canvas1BrowserAddress: String?
-    @NSManaged public var canvas1PDFBookmark: Data?
+    @NSManaged public var canvas1PDFData: Data?
+    @NSManaged public var canvas1PDFFileName: String?
     @NSManaged public var canvas1AIMessages: Data?
     
     // Canvas 2 properties
     @NSManaged public var canvas2ContentType: String?
     @NSManaged public var canvas2Notes: String?
     @NSManaged public var canvas2BrowserAddress: String?
-    @NSManaged public var canvas2PDFBookmark: Data?
+    @NSManaged public var canvas2PDFData: Data?
+    @NSManaged public var canvas2PDFFileName: String?
     @NSManaged public var canvas2AIMessages: Data?
 
 }

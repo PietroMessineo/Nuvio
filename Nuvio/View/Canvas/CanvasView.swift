@@ -39,7 +39,7 @@ extension CanvasContentType: CaseIterable, RawRepresentable {
 struct CanvasPane: View {
     let canvasIndex: Int
     @Binding var contentType: CanvasContentType
-    @Binding var selectedPDF: URL?
+    @Binding var pdfTemporaryURL: URL?
     @Binding var notes: String
     @Binding var browserAddress: String
     @Binding var browserNavigate: Bool
@@ -66,9 +66,18 @@ struct CanvasPane: View {
                     onOpenAi: onOpenAi
                 )
             case .pdf:
-                if let url = selectedPDF {
+                if let url = pdfTemporaryURL {
                     PDFKitView(url: url)
                         .clipShape(RoundedRectangle(cornerRadius: 48))
+                } else {
+                    // Show loading state or error
+                    VStack {
+                        Image(systemName: "doc.text")
+                            .font(.largeTitle)
+                            .foregroundColor(.secondary)
+                        Text("Loading PDF...")
+                            .foregroundColor(.secondary)
+                    }
                 }
             case .notes:
                 CanvasNotesView(notes: $notes)
@@ -211,7 +220,7 @@ struct CanvasSwitcherView: View {
     // Canvas data for preview
     let contentTypes: [CanvasContentType]
     let notes: [String]
-    let selectedPDFs: [URL?]
+    let pdfFileNames: [String?]  // Show filenames instead of URLs
     let browserAddresses: [String]
     
     let onSwitch: (Int) -> Void
@@ -239,7 +248,7 @@ struct CanvasSwitcherView: View {
                             canvasIndex: index,
                             contentType: contentTypes[index],
                             notes: notes[index],
-                            selectedPDF: selectedPDFs[index],
+                            pdfFileName: pdfFileNames[index],
                             browserAddress: browserAddresses[index],
                             isSource: index == sourceCanvasIndex,
                             onTap: {
@@ -272,7 +281,7 @@ struct CanvasPreviewCard: View {
     let canvasIndex: Int
     let contentType: CanvasContentType
     let notes: String
-    let selectedPDF: URL?
+    let pdfFileName: String?
     let browserAddress: String
     let isSource: Bool
     let onTap: () -> Void
@@ -379,7 +388,9 @@ struct CanvasPreviewCard: View {
 
 struct CanvasData {
     var contentType: CanvasContentType = .empty
-    var selectedPDF: URL? = nil
+    var pdfData: Data? = nil
+    var pdfFileName: String? = nil
+    var pdfTemporaryURL: URL? = nil  // For PDFKit display
     var notes: String = ""
     var browserAddress: String = ""
     var browserNavigate: Bool = false
@@ -400,9 +411,17 @@ struct CanvasView: View {
     @State private var canvasTitle: String = ""
     @State var currentCanvas: Int = 0
     @State private var isNewCanvas: Bool = false
-    @State private var selectedPDF0: URL?
-    @State private var selectedPDF1: URL?
-    @State private var selectedPDF2: URL?
+    
+    // PDF data for each canvas
+    @State private var pdfData0: Data?
+    @State private var pdfFileName0: String?
+    @State private var pdfTemporaryURL0: URL?
+    @State private var pdfData1: Data?
+    @State private var pdfFileName1: String?
+    @State private var pdfTemporaryURL1: URL?
+    @State private var pdfData2: Data?
+    @State private var pdfFileName2: String?
+    @State private var pdfTemporaryURL2: URL?
     @State private var showingImporter = false
     @State private var importingCanvasIndex: Int? = nil
     @State private var showingSaveDialog = false
@@ -472,21 +491,24 @@ struct CanvasView: View {
                 contentType: contentType0,
                 notes: notes0,
                 browserAddress: browserAddress0,
-                pdfBookmark: selectedPDF0.flatMap { canvasDataManager.createPDFBookmark(from: $0) },
+                pdfData: pdfData0,
+                pdfFileName: pdfFileName0,
                 messageContent: messageContent0
             ),
             canvas1Data: SavedCanvasData.CanvasData(
                 contentType: contentType1,
                 notes: notes1,
                 browserAddress: browserAddress1,
-                pdfBookmark: selectedPDF1.flatMap { canvasDataManager.createPDFBookmark(from: $0) },
+                pdfData: pdfData1,
+                pdfFileName: pdfFileName1,
                 messageContent: messageContent1
             ),
             canvas2Data: SavedCanvasData.CanvasData(
                 contentType: contentType2,
                 notes: notes2,
                 browserAddress: browserAddress2,
-                pdfBookmark: selectedPDF2.flatMap { canvasDataManager.createPDFBookmark(from: $0) },
+                pdfData: pdfData2,
+                pdfFileName: pdfFileName2,
                 messageContent: messageContent2
             )
         )
@@ -520,8 +542,10 @@ struct CanvasView: View {
         notes0 = canvasData.canvas0Data.notes
         browserAddress0 = canvasData.canvas0Data.browserAddress
         messageContent0 = canvasData.canvas0Data.messageContent
-        if let bookmarkData = canvasData.canvas0Data.pdfBookmark {
-            selectedPDF0 = canvasDataManager.resolvePDFBookmark(bookmarkData)
+        pdfData0 = canvasData.canvas0Data.pdfData
+        pdfFileName0 = canvasData.canvas0Data.pdfFileName
+        if let pdfData = pdfData0, let fileName = pdfFileName0 {
+            pdfTemporaryURL0 = canvasDataManager.createTemporaryURL(for: pdfData, fileName: fileName)
         }
         
         // Load Canvas 1 data
@@ -529,8 +553,10 @@ struct CanvasView: View {
         notes1 = canvasData.canvas1Data.notes
         browserAddress1 = canvasData.canvas1Data.browserAddress
         messageContent1 = canvasData.canvas1Data.messageContent
-        if let bookmarkData = canvasData.canvas1Data.pdfBookmark {
-            selectedPDF1 = canvasDataManager.resolvePDFBookmark(bookmarkData)
+        pdfData1 = canvasData.canvas1Data.pdfData
+        pdfFileName1 = canvasData.canvas1Data.pdfFileName
+        if let pdfData = pdfData1, let fileName = pdfFileName1 {
+            pdfTemporaryURL1 = canvasDataManager.createTemporaryURL(for: pdfData, fileName: fileName)
         }
         
         // Load Canvas 2 data
@@ -538,9 +564,17 @@ struct CanvasView: View {
         notes2 = canvasData.canvas2Data.notes
         browserAddress2 = canvasData.canvas2Data.browserAddress
         messageContent2 = canvasData.canvas2Data.messageContent
-        if let bookmarkData = canvasData.canvas2Data.pdfBookmark {
-            selectedPDF2 = canvasDataManager.resolvePDFBookmark(bookmarkData)
+        pdfData2 = canvasData.canvas2Data.pdfData
+        pdfFileName2 = canvasData.canvas2Data.pdfFileName
+        if let pdfData = pdfData2, let fileName = pdfFileName2 {
+            pdfTemporaryURL2 = canvasDataManager.createTemporaryURL(for: pdfData, fileName: fileName)
         }
+    }
+    
+    // Helper methods for PDF access management
+    private func cleanupPDFAccess() {
+        // Clean up temporary PDF files instead of managing security access
+        canvasDataManager.cleanupTemporaryPDFs()
     }
     
     // Helper methods for canvas switching
@@ -559,7 +593,9 @@ struct CanvasView: View {
         case 0:
             return CanvasData(
                 contentType: contentType0,
-                selectedPDF: selectedPDF0,
+                pdfData: pdfData0,
+                pdfFileName: pdfFileName0,
+                pdfTemporaryURL: pdfTemporaryURL0,
                 notes: notes0,
                 browserAddress: browserAddress0,
                 browserNavigate: browserNavigate0,
@@ -572,7 +608,9 @@ struct CanvasView: View {
         case 1:
             return CanvasData(
                 contentType: contentType1,
-                selectedPDF: selectedPDF1,
+                pdfData: pdfData1,
+                pdfFileName: pdfFileName1,
+                pdfTemporaryURL: pdfTemporaryURL1,
                 notes: notes1,
                 browserAddress: browserAddress1,
                 browserNavigate: browserNavigate1,
@@ -585,7 +623,9 @@ struct CanvasView: View {
         case 2:
             return CanvasData(
                 contentType: contentType2,
-                selectedPDF: selectedPDF2,
+                pdfData: pdfData2,
+                pdfFileName: pdfFileName2,
+                pdfTemporaryURL: pdfTemporaryURL2,
                 notes: notes2,
                 browserAddress: browserAddress2,
                 browserNavigate: browserNavigate2,
@@ -604,7 +644,9 @@ struct CanvasView: View {
         switch index {
         case 0:
             contentType0 = data.contentType
-            selectedPDF0 = data.selectedPDF
+            pdfData0 = data.pdfData
+            pdfFileName0 = data.pdfFileName
+            pdfTemporaryURL0 = data.pdfTemporaryURL
             notes0 = data.notes
             browserAddress0 = data.browserAddress
             browserNavigate0 = data.browserNavigate
@@ -615,7 +657,9 @@ struct CanvasView: View {
             messageContent0 = data.messageContent
         case 1:
             contentType1 = data.contentType
-            selectedPDF1 = data.selectedPDF
+            pdfData1 = data.pdfData
+            pdfFileName1 = data.pdfFileName
+            pdfTemporaryURL1 = data.pdfTemporaryURL
             notes1 = data.notes
             browserAddress1 = data.browserAddress
             browserNavigate1 = data.browserNavigate
@@ -626,7 +670,9 @@ struct CanvasView: View {
             messageContent1 = data.messageContent
         case 2:
             contentType2 = data.contentType
-            selectedPDF2 = data.selectedPDF
+            pdfData2 = data.pdfData
+            pdfFileName2 = data.pdfFileName
+            pdfTemporaryURL2 = data.pdfTemporaryURL
             notes2 = data.notes
             browserAddress2 = data.browserAddress
             browserNavigate2 = data.browserNavigate
@@ -647,7 +693,7 @@ struct CanvasView: View {
                     CanvasPane(
                         canvasIndex: 0,
                         contentType: $contentType0,
-                        selectedPDF: $selectedPDF0,
+                        pdfTemporaryURL: $pdfTemporaryURL0,
                         notes: $notes0,
                         browserAddress: $browserAddress0,
                         browserNavigate: $browserNavigate0,
@@ -675,7 +721,7 @@ struct CanvasView: View {
                         CanvasPane(
                             canvasIndex: 1,
                             contentType: $contentType1,
-                            selectedPDF: $selectedPDF1,
+                            pdfTemporaryURL: $pdfTemporaryURL1,
                             notes: $notes1,
                             browserAddress: $browserAddress1,
                             browserNavigate: $browserNavigate1,
@@ -703,7 +749,7 @@ struct CanvasView: View {
                             CanvasPane(
                                 canvasIndex: 2,
                                 contentType: $contentType2,
-                                selectedPDF: $selectedPDF2,
+                                pdfTemporaryURL: $pdfTemporaryURL2,
                                 notes: $notes2,
                                 browserAddress: $browserAddress2,
                                 browserNavigate: $browserNavigate2,
@@ -735,28 +781,39 @@ struct CanvasView: View {
                 switch result {
                 case .success(let urls):
                     guard let url = urls.first else { return }
-                    let started = url.startAccessingSecurityScopedResource()
-                    defer {
-                        if started {
-                            // Do not stop immediately to allow rendering; you can manage stopping when clearing/replacing
-                            // url.stopAccessingSecurityScopedResource()
+                    
+                    // Load PDF data immediately
+                    let (pdfData, fileName) = canvasDataManager.loadPDFData(from: url)
+                    
+                    if let data = pdfData {
+                        // Create temporary URL for display
+                        let tempURL = canvasDataManager.createTemporaryURL(for: data, fileName: fileName)
+                        
+                        switch importingCanvasIndex {
+                        case 0:
+                            pdfData0 = data
+                            pdfFileName0 = fileName
+                            pdfTemporaryURL0 = tempURL
+                            contentType0 = .pdf
+                        case 1:
+                            pdfData1 = data
+                            pdfFileName1 = fileName
+                            pdfTemporaryURL1 = tempURL
+                            contentType1 = .pdf
+                        case 2:
+                            pdfData2 = data
+                            pdfFileName2 = fileName
+                            pdfTemporaryURL2 = tempURL
+                            contentType2 = .pdf
+                        default:
+                            break
                         }
+                    } else {
+                        print("Failed to load PDF data from \(url)")
                     }
-                    switch importingCanvasIndex {
-                    case 0:
-                        selectedPDF0 = url
-                        contentType0 = .pdf
-                    case 1:
-                        selectedPDF1 = url
-                        contentType1 = .pdf
-                    case 2:
-                        selectedPDF2 = url
-                        contentType2 = .pdf
-                    default:
-                        break
-                    }
-                case .failure:
-                    break
+                    
+                case .failure(let error):
+                    print("File import failed: \(error)")
                 }
             }
             .sheet(item: $switchingFromCanvasIndex, content: { sourceIndex in
@@ -764,7 +821,7 @@ struct CanvasView: View {
                     sourceCanvasIndex: sourceIndex,
                     contentTypes: [contentType0, contentType1, contentType2],
                     notes: [notes0, notes1, notes2],
-                    selectedPDFs: [selectedPDF0, selectedPDF1, selectedPDF2],
+                    pdfFileNames: [pdfFileName0, pdfFileName1, pdfFileName2],
                     browserAddresses: [browserAddress0, browserAddress1, browserAddress2],
                     onSwitch: { targetIndex in
                         switchCanvases(from: sourceIndex, to: targetIndex)
@@ -776,10 +833,14 @@ struct CanvasView: View {
         .onAppear {
             loadCanvasData()
         }
+        .onDisappear {
+            // Clean up PDF access when leaving the canvas
+            cleanupPDFAccess()
+        }
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button("Back") {
-                    // saveCanvas()
+                    saveCanvas()
                     dismiss()
                 }
             }
