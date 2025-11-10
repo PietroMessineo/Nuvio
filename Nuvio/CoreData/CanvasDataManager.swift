@@ -50,6 +50,21 @@ class CanvasDataManager: ObservableObject {
     }
     
     func saveCanvasData(canvas: Canvas, canvasData: SavedCanvasData) {
+        // Ensure the canvas is in a valid state
+        if canvas.isDeleted {
+            print("Warning: Attempting to save data to a deleted canvas")
+            return
+        }
+        
+        // Force fault resolution by accessing properties
+        _ = canvas.title
+        
+        // Check if it's still a fault after property access
+        if canvas.isFault {
+            print("Warning: Canvas is still a fault after property access - this may indicate a Core Data issue")
+            // Don't return here, try to save anyway as the fault might resolve during save
+        }
+        
         canvas.modifiedDate = Date()
         canvas.title = canvasData.title
         canvas.currentCanvasLayout = Int16(canvasData.currentCanvas)
@@ -78,7 +93,7 @@ class CanvasDataManager: ObservableObject {
         saveContext()
     }
     
-    func loadCanvasData(from canvas: Canvas) -> SavedCanvasData {
+    func loadCanvasData(from canvas: Canvas) -> SavedCanvasData {        
         let canvas0Data = SavedCanvasData.CanvasData(
             contentType: CanvasContentType(rawValue: canvas.canvas0ContentType ?? "") ?? .empty,
             notes: canvas.canvas0Notes ?? "",
@@ -118,6 +133,39 @@ class CanvasDataManager: ObservableObject {
     }
     
     // MARK: - Helper Methods
+    
+    /// Ensures a Canvas object is properly loaded and not in a fault state
+    func ensureCanvasLoaded(_ canvas: Canvas) -> Canvas? {
+        // If deleted, return nil
+        if canvas.isDeleted {
+            return nil
+        }
+        
+        // Try to access properties to resolve any faults
+        do {
+            _ = canvas.title
+            _ = canvas.id
+            
+            // If accessing properties worked and it's not a fault, return it
+            if !canvas.isFault {
+                return canvas
+            }
+            
+            // If it's still a fault, try to refetch it by ID
+            if let canvasID = canvas.id {
+                let request: NSFetchRequest<Canvas> = Canvas.fetchRequest()
+                request.predicate = NSPredicate(format: "id == %@", canvasID as CVarArg)
+                request.fetchLimit = 1
+                
+                let results = try viewContext.fetch(request)
+                return results.first
+            }
+        } catch {
+            print("Error ensuring canvas is loaded: \(error)")
+        }
+        
+        return nil
+    }
     
     private func saveContext() {
         do {

@@ -16,7 +16,7 @@ struct HomeView: View {
         animation: .default)
     private var canvases: FetchedResults<Canvas>
     
-    @State private var showingCanvasView = false
+    @State private var createNewCanvas: Bool = false
     @State private var selectedCanvas: Canvas? = nil
     
     var body: some View {
@@ -28,8 +28,7 @@ struct HomeView: View {
                 
                 // New Canvas Card
                 Button {
-                    selectedCanvas = nil
-                    showingCanvasView = true
+                    createNewCanvas = true
                 } label: {
                     VStack(spacing: 12) {
                         ZStack {
@@ -59,7 +58,6 @@ struct HomeView: View {
                 ForEach(canvases) { canvas in
                     Button {
                         selectedCanvas = canvas
-                        showingCanvasView = true
                     } label: {
                         CanvasGridCard(canvas: canvas)
                     }
@@ -67,7 +65,6 @@ struct HomeView: View {
                     .contextMenu {
                         Button("Edit") {
                             selectedCanvas = canvas
-                            showingCanvasView = true
                         }
                         
                         Button("Delete", role: .destructive) {
@@ -119,7 +116,6 @@ struct HomeView: View {
             ToolbarItem(placement: .primaryAction) {
                 Button {
                     selectedCanvas = nil
-                    showingCanvasView = true
                 } label: {
                     Image(systemName: "plus")
                         .padding(12)
@@ -129,11 +125,16 @@ struct HomeView: View {
             .sharedBackgroundVisibility(.hidden)
         })
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .fullScreenCover(isPresented: $showingCanvasView) {
+        .fullScreenCover(item: $selectedCanvas, content: { selectedCanvas in
             NavigationStack {
                 CanvasView(canvas: selectedCanvas, context: viewContext)
             }
-        }
+        })
+        .fullScreenCover(isPresented: $createNewCanvas, content: {
+            NavigationStack {
+                CanvasView(canvas: nil, context: viewContext)
+            }
+        })
     }
     
     private func deleteCanvas(_ canvas: Canvas) {

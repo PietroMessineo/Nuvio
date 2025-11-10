@@ -399,6 +399,7 @@ struct CanvasView: View {
     @StateObject private var canvasDataManager: CanvasDataManager
     @State private var canvasTitle: String = ""
     @State var currentCanvas: Int = 0
+    @State private var isNewCanvas: Bool = false
     @State private var selectedPDF0: URL?
     @State private var selectedPDF1: URL?
     @State private var selectedPDF2: URL?
@@ -450,7 +451,19 @@ struct CanvasView: View {
     // MARK: - Save Methods
     
     private func saveCanvas() {
-        let targetCanvas = canvas ?? canvasDataManager.createNewCanvas()
+        // If we have an existing canvas, make sure it's valid
+        let targetCanvas: Canvas
+        if let existingCanvas = canvas {
+            // Use the new method to ensure canvas is properly loaded
+            if let validCanvas = canvasDataManager.ensureCanvasLoaded(existingCanvas) {
+                targetCanvas = validCanvas
+            } else {
+                print("Canvas could not be loaded for saving - creating new canvas")
+                targetCanvas = canvasDataManager.createNewCanvas()
+            }
+        } else {
+            targetCanvas = canvasDataManager.createNewCanvas()
+        }
         
         let canvasData = SavedCanvasData(
             title: canvasTitle.isEmpty ? "Untitled Canvas" : canvasTitle,
@@ -484,9 +497,20 @@ struct CanvasView: View {
     private func loadCanvasData() {
         guard let canvas = canvas else { 
             canvasTitle = "New Canvas"
+            isNewCanvas = true
             return 
         }
-        let canvasData = canvasDataManager.loadCanvasData(from: canvas)
+        
+        // Use the new method to ensure canvas is properly loaded
+        guard let validCanvas = canvasDataManager.ensureCanvasLoaded(canvas) else {
+            print("Canvas could not be loaded - treating as new canvas")
+            canvasTitle = "New Canvas"
+            isNewCanvas = true
+            return
+        }
+        
+        isNewCanvas = false
+        let canvasData = canvasDataManager.loadCanvasData(from: validCanvas)
         
         canvasTitle = canvasData.title
         currentCanvas = canvasData.currentCanvas
@@ -755,7 +779,7 @@ struct CanvasView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button("Back") {
-                    saveCanvas()
+                    // saveCanvas()
                     dismiss()
                 }
             }
