@@ -20,60 +20,62 @@ struct HomeView: View {
     @State private var selectedCanvas: Canvas? = nil
     
     var body: some View {
-        ScrollView {
-            LazyVGrid(columns: [
-                GridItem(.flexible(), spacing: 16),
-                GridItem(.flexible(), spacing: 16)
-            ], spacing: 16) {
-                
-                // New Canvas Card
-                Button {
-                    createNewCanvas = true
-                } label: {
-                    VStack(spacing: 12) {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 22)
-                                .fill(Color(hex: "F1F1F1"))
-                                .frame(height: 127)
-                            
-                            VStack(spacing: 8) {
-                                Image(systemName: "plus")
-                                    .font(.title)
-                                    .foregroundStyle(.blue)
-                                Text("New Canvas")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                        
-                        Text("Create New")
-                            .font(.headline)
-                            .foregroundStyle(.primary)
-                    }
-                    .frame(width: 181)
-                }
-                .buttonStyle(PlainButtonStyle())
-                
-                // Existing Canvas Cards
-                ForEach(canvases) { canvas in
+        GeometryReader { geometry in
+            let width = geometry.size.width
+            let columns = calculateColumns(for: width)
+            
+            ScrollView {
+                LazyVGrid(columns: columns, spacing: 16) {
+                    
+                    // New Canvas Card
                     Button {
-                        selectedCanvas = canvas
+                        createNewCanvas = true
                     } label: {
-                        CanvasGridCard(canvas: canvas)
+                        VStack(spacing: 12) {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 22)
+                                    .fill(Color(hex: "F1F1F1"))
+                                    .frame(height: 127)
+                                
+                                VStack(spacing: 8) {
+                                    Image(systemName: "plus")
+                                        .font(.title)
+                                        .foregroundStyle(.blue)
+                                    Text("New Canvas")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            
+                            Text("Create New")
+                                .font(.headline)
+                                .foregroundStyle(.primary)
+                        }
+                        .frame(width: 181)
                     }
                     .buttonStyle(PlainButtonStyle())
-                    .contextMenu {
-                        Button("Edit") {
+                    
+                    // Existing Canvas Cards
+                    ForEach(canvases) { canvas in
+                        Button {
                             selectedCanvas = canvas
+                        } label: {
+                            CanvasGridCard(canvas: canvas)
                         }
-                        
-                        Button("Delete", role: .destructive) {
-                            deleteCanvas(canvas)
+                        .buttonStyle(PlainButtonStyle())
+                        .contextMenu {
+                            Button("Edit") {
+                                selectedCanvas = canvas
+                            }
+                            
+                            Button("Delete", role: .destructive) {
+                                deleteCanvas(canvas)
+                            }
                         }
                     }
                 }
+                .padding()
             }
-            .padding()
         }
         .toolbar(content: {
             ToolbarItem(placement: .topBarLeading) {
@@ -147,6 +149,13 @@ struct HomeView: View {
                 print("Error deleting canvas: \(error)")
             }
         }
+    }
+    
+    private func calculateColumns(for width: CGFloat) -> [GridItem] {
+        let itemWidth: CGFloat = 181
+        let spacing: CGFloat = 16
+        let columnsCount = Int(width / (itemWidth + spacing))
+        return Array(repeating: GridItem(.flexible()), count: columnsCount)
     }
 }
 
